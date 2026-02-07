@@ -224,9 +224,9 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
             <div className="rounded-lg bg-muted/40 p-3 min-h-[6rem] space-y-2">
                 {goals[period].length > 0 ? (
                     goals[period].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-md bg-background shadow-sm">
+                        <div key={index} className="group flex items-center justify-between p-3 rounded-md bg-background shadow-sm">
                             <span className="text-card-foreground flex-1 break-words">{item}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeGoal(period, index)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
                                 <Trash2 className="h-4 w-4 text-destructive/80" />
                             </Button>
                         </div>
