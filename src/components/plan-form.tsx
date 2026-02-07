@@ -160,7 +160,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
         <div className="relative">
             <div className="flex items-center gap-2 group">
                 {editing ? (
-                    <div className="flex-1 flex items-center gap-1 py-1 relative z-0">
+                    <div className="flex-1 flex items-center gap-1 py-1 relative z-10">
                         <Input
                             ref={inputRef}
                             value={editText}
@@ -226,7 +226,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                         </TooltipProvider>
                     </div>
                 )}
-                <div className="absolute -left-3.5 top-0 h-full">
+                <div className="absolute -left-3.5 top-0 h-full z-0">
                     {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
                     {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
                 </div>
@@ -246,7 +246,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                     />
                 ))}
                 {addingChild && (
-                    <div className="flex items-center gap-2 mt-1 py-1">
+                    <div className="flex items-center gap-2 mt-1 py-1 relative">
                         <div className="absolute -left-3.5 top-0 h-full">
                            <div className="absolute top-0 h-5 w-px bg-border" />
                            <div className="absolute top-4 h-px w-3.5 bg-border" />
@@ -359,15 +359,15 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (p
     };
     
     return (
-        <div className="h-full">
-            <div className="mb-4 flex items-start justify-between">
+        <div className="h-full bg-muted/30 rounded-lg p-4 flex flex-col">
+            <div className="flex items-start justify-between">
                 <div>
                     <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
                     <p className="text-sm text-muted-foreground">{dailyTranslations.suggestionsDescription}</p>
                 </div>
             </div>
             
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 my-4">
                 <Input
                     value={newSuggestion}
                     onChange={(e) => setNewSuggestion(e.target.value)}
@@ -377,7 +377,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (p
                 />
                 <Button onClick={handleAddRootSuggestion} size="sm">{dailyTranslations.addSuggestion}</Button>
             </div>
-            <ScrollArea className="h-[calc(100vh-28rem)]">
+            <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-1 pr-2">
                    {suggestions.map((item, index) => (
                         <SuggestionNode
