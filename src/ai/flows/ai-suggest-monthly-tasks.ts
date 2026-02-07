@@ -1,11 +1,10 @@
 'use server';
 
 /**
- * @fileOverview AI-powered task suggestion for monthly plans.
+ * @fileOverview AI 驱动的每月计划任务建议。
  *
- * This file defines a Genkit flow that takes monthly goals as input and suggests tasks
- * to help achieve those goals. It exports the `suggestMonthlyTasks` function, the
- * `SuggestMonthlyTasksInput` type, and the `SuggestMonthlyTasksOutput` type.
+ * 此文件定义了一个 Genkit 流程，该流程将月度目标作为输入并建议实现这些目标的任务。
+ * 它导出了 `suggestMonthlyTasks` 函数、`SuggestMonthlyTasksInput` 类型和 `SuggestMonthlyTasksOutput` 类型。
  */
 
 import {ai} from '@/ai/genkit';
@@ -14,14 +13,14 @@ import {z} from 'genkit';
 const SuggestMonthlyTasksInputSchema = z.object({
   monthlyGoals: z
     .string()
-    .describe('The user-defined goals for the month.'),
+    .describe('用户定义的本月目标。'),
 });
 export type SuggestMonthlyTasksInput = z.infer<typeof SuggestMonthlyTasksInputSchema>;
 
 const SuggestMonthlyTasksOutputSchema = z.object({
   suggestedTasks: z
     .string()
-    .describe('A list of tasks suggested by the AI to achieve the monthly goals.'),
+    .describe('AI 建议的用于实现月度目标的任务列表。'),
 });
 export type SuggestMonthlyTasksOutput = z.infer<typeof SuggestMonthlyTasksOutputSchema>;
 
@@ -35,9 +34,9 @@ const prompt = ai.definePrompt({
   name: 'suggestMonthlyTasksPrompt',
   input: {schema: SuggestMonthlyTasksInputSchema},
   output: {schema: SuggestMonthlyTasksOutputSchema},
-  prompt: `You are a personal planning assistant. Given the user's goals for the month, suggest a list of tasks that will help them achieve those goals.  Return the tasks as a numbered list.
+  prompt: `你是一个个人规划助理。根据用户本月的目标，建议一个任务列表，帮助他们实现这些目标。以编号列表的形式用中文返回任务。
 
-Monthly Goals: {{{monthlyGoals}}}`,
+月度目标: {{{monthlyGoals}}}`,
 });
 
 const suggestMonthlyTasksFlow = ai.defineFlow(

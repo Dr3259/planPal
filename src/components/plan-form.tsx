@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 
 const FormSchema = z.object({
-  goals: z.string().min(10, { message: 'Please describe your goals in at least 10 characters.' }),
+  goals: z.string().min(10, { message: '请至少输入10个字符来描述你的目标。' }),
 });
 
 type PlanFormProps = {
@@ -23,10 +23,34 @@ type PlanFormProps = {
   placeholder: string;
 };
 
+const translations = {
+    'Daily': {
+        plan: '每日计划',
+        description: '概述你今天的目标，让 AI 帮助你将其分解为可行的任务。',
+        goals: '我的每日目标'
+    },
+    'Weekly': {
+        plan: '每周计划',
+        description: '概述你本周的目标，让 AI 帮助你将其分解为可行的任务。',
+        goals: '我的每周目标'
+    },
+    'Monthly': {
+        plan: '每月计划',
+        description: '概述你本月的目标，让 AI 帮助你将其分解为可行的任务。',
+        goals: '我的每月目标'
+    },
+    'Yearly': {
+        plan: '年度计划',
+        description: '概述你今年的目标，让 AI 帮助你将其分解为可行的任务。',
+        goals: '我的年度目标'
+    }
+};
+
 export default function PlanForm({ planType, suggestionAction, placeholder }: PlanFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedTasks, setSuggestedTasks] = useState<string | string[] | null>(null);
   const { toast } = useToast();
+  const currentTranslation = translations[planType];
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -46,8 +70,8 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
       console.error('Error getting AI suggestions:', error);
       toast({
         variant: "destructive",
-        title: "Oh no! Something went wrong.",
-        description: "There was a problem with the AI suggestion. Please try again.",
+        title: "哦不！出错了。",
+        description: "AI 建议出现问题。请重试。",
       });
     } finally {
       setIsLoading(false);
@@ -74,8 +98,8 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-3xl">{planType} Plan</CardTitle>
-        <CardDescription>Outline your goals for the {planType.toLowerCase()} and let AI help you break them down into actionable tasks.</CardDescription>
+        <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
+        <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -85,7 +109,7 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
               name="goals"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-lg">My {planType} Goals</FormLabel>
+                  <FormLabel className="text-lg">{currentTranslation.goals}</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder={placeholder}
@@ -102,12 +126,12 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  生成中...
                 </>
               ) : (
                 <>
                   <Wand2 className="mr-2 h-4 w-4" />
-                  Suggest Tasks with AI
+                  AI 建议任务
                 </>
               )}
             </Button>
@@ -116,7 +140,7 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
         {(isLoading || suggestedTasks) && (
           <div className="mt-8">
             <Separator />
-            <h3 className="text-2xl font-headline mt-6 mb-4">Suggested Tasks</h3>
+            <h3 className="text-2xl font-headline mt-6 mb-4">建议任务</h3>
             {isLoading && !suggestedTasks && (
                 <div className="space-y-3">
                     <div className="flex items-center space-x-2">

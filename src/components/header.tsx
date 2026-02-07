@@ -7,7 +7,7 @@ export default function Header() {
         <div className="bg-primary p-2 rounded-lg">
           <ListTodo className="h-6 w-6 text-primary-foreground" />
         </div>
-        <h1 className="ml-3 text-2xl font-headline font-bold text-foreground">PlanPal</h1>
+        <h1 className="ml-3 text-2xl font-headline font-bold text-foreground">计划宝</h1>
       </div>
     </header>
   );

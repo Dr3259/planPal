@@ -11,35 +11,35 @@ export default function Home() {
   const plans = [
     {
       value: 'daily',
-      label: 'Daily',
+      label: '每日',
       icon: <Calendar className="w-5 h-5 mr-2" />,
       planType: 'Daily' as const,
       suggestionAction: suggestDailyTasks,
-      placeholder: 'e.g., Finish the project proposal, go for a 30-min run, and read a chapter of a book.',
+      placeholder: '例如：完成项目提案，跑步30分钟，读一章书。',
     },
     {
       value: 'weekly',
-      label: 'Weekly',
+      label: '每周',
       icon: <ChevronsRight className="w-5 h-5 mr-2" />,
       planType: 'Weekly' as const,
       suggestionAction: suggestWeeklyTasks,
-      placeholder: 'e.g., Complete the weekly report, meal prep for the week, and attend the marketing meeting.',
+      placeholder: '例如：完成周报，准备一周的饭菜，参加营销会议。',
     },
     {
       value: 'monthly',
-      label: 'Monthly',
+      label: '每月',
       icon: <Milestone className="w-5 h-5 mr-2" />,
       planType: 'Monthly' as const,
       suggestionAction: suggestMonthlyTasks,
-      placeholder: 'e.g., Launch the new feature, achieve a 10% increase in user engagement, and take a weekend trip.',
+      placeholder: '例如：发布新功能，用户参与度提高10%，周末旅行。',
     },
     {
       value: 'yearly',
-      label: 'Yearly',
+      label: '年度',
       icon: <Star className="w-5 h-5 mr-2" />,
       planType: 'Yearly' as const,
       suggestionAction: suggestYearlyTasks,
-      placeholder: 'e.g., Get a promotion, learn a new programming language, and travel to a new country.',
+      placeholder: '例如：获得晋升，学习一门新的编程语言，去一个新的国家旅行。',
     },
   ];
 

@@ -1,10 +1,10 @@
 'use server';
 /**
- * @fileOverview AI-powered task suggestions for weekly plans.
+ * @fileOverview AI 驱动的每周计划任务建议。
  *
- * - suggestWeeklyTasks - A function that takes weekly goals as input and returns AI-generated task suggestions.
- * - SuggestWeeklyTasksInput - The input type for the suggestWeeklyTasks function.
- * - SuggestWeeklyTasksOutput - The return type for the suggestWeeklyTasks function.
+ * - suggestWeeklyTasks - 一个函数，接收每周目标作为输入并返回 AI 生成的任务建议。
+ * - SuggestWeeklyTasksInput - suggestWeeklyTasks 函数的输入类型。
+ * - SuggestWeeklyTasksOutput - suggestWeeklyTasks 函数的返回类型。
  */
 
 import {ai} from '@/ai/genkit';
@@ -13,14 +13,14 @@ import {z} from 'genkit';
 const SuggestWeeklyTasksInputSchema = z.object({
   weeklyGoals: z
     .string()
-    .describe('The user-defined goals for the week.'),
+    .describe('用户定义的本周目标。'),
 });
 export type SuggestWeeklyTasksInput = z.infer<typeof SuggestWeeklyTasksInputSchema>;
 
 const SuggestWeeklyTasksOutputSchema = z.object({
   suggestedTasks: z
     .array(z.string())
-    .describe('A list of AI-generated task suggestions to achieve the weekly goals.'),
+    .describe('AI 生成的用于实现每周目标的任务建议列表。'),
 });
 export type SuggestWeeklyTasksOutput = z.infer<typeof SuggestWeeklyTasksOutputSchema>;
 
@@ -32,11 +32,11 @@ const prompt = ai.definePrompt({
   name: 'suggestWeeklyTasksPrompt',
   input: {schema: SuggestWeeklyTasksInputSchema},
   output: {schema: SuggestWeeklyTasksOutputSchema},
-  prompt: `You are a personal planning assistant. The user will provide their goals for the week, and you will respond with a list of suggested tasks to help them achieve those goals.
+  prompt: `你是一个个人规划助理。用户将提供他们本周的目标，你将以中文回应一系列建议任务，以帮助他们实现这些目标。
 
-  Goals: {{{weeklyGoals}}}
+  目标: {{{weeklyGoals}}}
 
-  Tasks:`,
+  任务:`,
 });
 
 const suggestWeeklyTasksFlow = ai.defineFlow(
