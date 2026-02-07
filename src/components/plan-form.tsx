@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 
 type PlanFormProps = {
@@ -217,6 +218,27 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    const stringToHash = (str: string) => {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash;
+    };
+
+    const noteColors = [
+        { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border-amber-200/80' },
+        { bg: 'bg-emerald-100/60', text: 'text-emerald-800', border: 'border-emerald-200/80' },
+        { bg: 'bg-sky-100/60', text: 'text-sky-800', border: 'border-sky-200/80' },
+        { bg: 'bg-rose-100/60', text: 'text-rose-800', border: 'border-rose-200/80' },
+        { bg: 'bg-violet-100/60', text: 'text-violet-800', border: 'border-violet-200/80' },
+        { bg: 'bg-teal-100/60', text: 'text-teal-800', border: 'border-teal-200/80' },
+        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800', border: 'border-fuchsia-200/80' },
+    ];
+
     useEffect(() => {
         const savedGoals = localStorage.getItem(goalsStorageKey);
         if (savedGoals) {
@@ -281,14 +303,20 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
             <div className="rounded-lg min-h-[10rem] py-2">
                 {goals[period].length > 0 ? (
                     <div className="flex flex-wrap gap-4">
-                        {goals[period].map((item, index) => (
-                             <div key={index} className="group relative bg-accent/20 p-4 rounded-lg shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105">
-                                <p className="text-sm font-medium text-accent-foreground break-words">{item}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => removeGoal(period, index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                        {goals[period].map((item, index) => {
+                             const hash = stringToHash(item);
+                             const color = noteColors[Math.abs(hash) % noteColors.length];
+                             return (
+                                 <div key={index} className={cn(
+                                     "group relative p-4 rounded-lg shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border",
+                                     color.bg, color.text, color.border
+                                 )}>
+                                <p className="text-sm font-medium break-words">{item}</p>
+                                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(period, index)}>
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 ) : (
                     <div className="flex items-center justify-center border-2 border-dashed rounded-lg w-full min-h-[10rem]">
