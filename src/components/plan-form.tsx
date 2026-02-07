@@ -104,49 +104,49 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{dailyTranslations.suggestionsTitle}</CardTitle>
-                <CardDescription>{dailyTranslations.suggestionsDescription}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                    <Input
-                        value={newSuggestion}
-                        onChange={(e) => setNewSuggestion(e.target.value)}
-                        placeholder="添加新的常用计划..."
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddSuggestion()}
-                    />
-                    <Button onClick={handleAddSuggestion}>{dailyTranslations.addSuggestion}</Button>
-                </div>
-                <ScrollArea className="h-72">
-                    <div className="space-y-2 pr-4">
-                        {suggestions.map((suggestion, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-card border hover:bg-muted/50">
-                                <span className="flex-1 break-words mr-2">{suggestion}</span>
-                                <div className="flex items-center gap-1">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                                                <Plus className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent>
-                                            <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
+        <div className="bg-muted/40 rounded-lg p-4 h-full">
+            <div className="mb-4">
+                <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
+                <p className="text-sm text-muted-foreground">{dailyTranslations.suggestionsDescription}</p>
+            </div>
+            
+            <div className="flex gap-2 mb-4">
+                <Input
+                    value={newSuggestion}
+                    onChange={(e) => setNewSuggestion(e.target.value)}
+                    placeholder="添加新的常用计划..."
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddSuggestion()}
+                    className="bg-background"
+                />
+                <Button onClick={handleAddSuggestion} size="sm">{dailyTranslations.addSuggestion}</Button>
+            </div>
+            <ScrollArea className="h-80">
+                <div className="space-y-2 pr-4">
+                    {suggestions.map((suggestion, index) => (
+                        <div key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm">
+                            <span className="flex-1 break-words mr-2 text-sm">{suggestion}</span>
+                            <div className="flex items-center gap-0">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                                </Button>
                             </div>
-                        ))}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-        </Card>
+                        </div>
+                    ))}
+                </div>
+            </ScrollArea>
+        </div>
     );
 };
 
@@ -217,23 +217,23 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
 
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
         <div key={period}>
-            <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-xl font-semibold text-foreground">{title}</h3>
-                {goals[period].length > 0 && <Badge>{goals[period].length}</Badge>}
+            <div className="flex items-center gap-3 mb-3">
+                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="space-y-3">
+            <div className="rounded-lg bg-muted/40 p-3 min-h-[6rem] space-y-2">
                 {goals[period].length > 0 ? (
                     goals[period].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-card border">
-                            <span className="text-card-foreground">{item}</span>
+                        <div key={index} className="flex items-center justify-between p-3 rounded-md bg-background shadow-sm">
+                            <span className="text-card-foreground flex-1 break-words">{item}</span>
                             <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeGoal(period, index)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <Trash2 className="h-4 w-4 text-destructive/80" />
                             </Button>
                         </div>
                     ))
                 ) : (
-                    <div className="flex items-center justify-center h-20 rounded-lg border-2 border-dashed border-muted-foreground/30">
-                        <p className="text-muted-foreground">{dailyTranslations.noPlans}</p>
+                    <div className="flex items-center justify-center h-full pt-4">
+                        <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
                     </div>
                 )}
             </div>
@@ -241,13 +241,13 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="lg:col-span-2 space-y-6">
                 {renderPeriodPlans('morning', dailyTranslations.morning)}
                 {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
                 {renderPeriodPlans('evening', dailyTranslations.evening)}
             </div>
-            <div>
+            <div className="h-full">
                 <SuggestedItems
                     mode={mode}
                     suggestions={suggestions}
