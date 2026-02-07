@@ -78,7 +78,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header mode={mode} setMode={setMode} />
       <main className="flex-1 container mx-auto p-4 sm:p-6 md:p-8">
-        <Tabs defaultValue="daily" className="w-full max-w-4xl mx-auto">
+        <Tabs defaultValue="daily" className="w-full max-w-5xl mx-auto">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
             {plans.map((plan) => (
               <TabsTrigger key={plan.value} value={plan.value} className="py-3 text-base">
