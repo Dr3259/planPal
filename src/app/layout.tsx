@@ -4,7 +4,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: '计划宝',
-  description: '你的 AI 驱动的规划助手。',
+  description: '你的个人规划助手。',
 };
 
 export default function RootLayout({

@@ -1,99 +1,40 @@
 "use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Wand2, Loader2, ClipboardCheck } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-
-const FormSchema = z.object({
-  goals: z.string().min(10, { message: '请至少输入10个字符来描述你的目标。' }),
-});
 
 type PlanFormProps = {
   planType: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
-  suggestionAction: (input: { [key: string]: string }) => Promise<{ suggestedTasks: string | string[] }>;
   placeholder: string;
 };
 
 const translations = {
     'Daily': {
         plan: '每日计划',
-        description: '概述你今天的目标，让 AI 帮助你将其分解为可行的任务。',
+        description: '概述你今天的目标。',
         goals: '我的每日目标'
     },
     'Weekly': {
         plan: '每周计划',
-        description: '概述你本周的目标，让 AI 帮助你将其分解为可行的任务。',
+        description: '概述你本周的目标。',
         goals: '我的每周目标'
     },
     'Monthly': {
         plan: '每月计划',
-        description: '概述你本月的目标，让 AI 帮助你将其分解为可行的任务。',
+        description: '概述你本月的目标。',
         goals: '我的每月目标'
     },
     'Yearly': {
         plan: '年度计划',
-        description: '概述你今年的目标，让 AI 帮助你将其分解为可行的任务。',
+        description: '概述你今年的目标。',
         goals: '我的年度目标'
     }
 };
 
-export default function PlanForm({ planType, suggestionAction, placeholder }: PlanFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [suggestedTasks, setSuggestedTasks] = useState<string | string[] | null>(null);
-  const { toast } = useToast();
+export default function PlanForm({ planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[planType];
-
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      goals: '',
-    },
-  });
-
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
-    setIsLoading(true);
-    setSuggestedTasks(null);
-    try {
-      const inputKey = `${planType.toLowerCase()}Goals`;
-      const result = await suggestionAction({ [inputKey]: data.goals });
-      setSuggestedTasks(result.suggestedTasks);
-    } catch (error) {
-      console.error('Error getting AI suggestions:', error);
-      toast({
-        variant: "destructive",
-        title: "哦不！出错了。",
-        description: "AI 建议出现问题。请重试。",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-  
-  const renderTasks = (tasks: string | string[]) => {
-    if (typeof tasks === 'string') {
-      return tasks.split('\n').filter(task => task.trim()).map((task, index) => (
-        <li key={index} className="flex items-start gap-3">
-          <ClipboardCheck className="h-5 w-5 mt-1 text-primary shrink-0" />
-          <span>{task.replace(/^\d+\.\s*/, '')}</span>
-        </li>
-      ));
-    }
-    return tasks.map((task, index) => (
-      <li key={index} className="flex items-start gap-3">
-        <ClipboardCheck className="h-5 w-5 mt-1 text-primary shrink-0" />
-        <span>{task}</span>
-      </li>
-    ));
-  }
+  const textareaId = `${planType.toLowerCase()}-goals`;
 
   return (
     <Card className="w-full shadow-lg">
@@ -102,68 +43,15 @@ export default function PlanForm({ planType, suggestionAction, placeholder }: Pl
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="goals"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg">{currentTranslation.goals}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={placeholder}
-                      className="resize-none"
-                      rows={5}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <div className="space-y-2">
+            <Label htmlFor={textareaId} className="text-lg">{currentTranslation.goals}</Label>
+            <Textarea
+              id={textareaId}
+              placeholder={placeholder}
+              className="resize-none"
+              rows={8}
             />
-            <Button type="submit" disabled={isLoading} className="bg-accent text-accent-foreground hover:bg-accent/90">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  生成中...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  AI 建议任务
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-        {(isLoading || suggestedTasks) && (
-          <div className="mt-8">
-            <Separator />
-            <h3 className="text-2xl font-headline mt-6 mb-4">建议任务</h3>
-            {isLoading && !suggestedTasks && (
-                <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                        <div className="h-5 w-5 bg-muted rounded-full animate-pulse"></div>
-                        <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="h-5 w-5 bg-muted rounded-full animate-pulse"></div>
-                        <div className="h-4 bg-muted rounded w-1/2 animate-pulse"></div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="h-5 w-5 bg-muted rounded-full animate-pulse"></div>
-                        <div className="h-4 bg-muted rounded w-5/6 animate-pulse"></div>
-                    </div>
-                </div>
-            )}
-            {suggestedTasks && (
-                <ul className="space-y-4">
-                {renderTasks(suggestedTasks)}
-                </ul>
-            )}
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

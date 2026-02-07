@@ -1,10 +1,6 @@
 import Header from '@/components/header';
 import PlanForm from '@/components/plan-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { suggestDailyTasks } from '@/ai/flows/ai-suggest-daily-tasks';
-import { suggestWeeklyTasks } from '@/ai/flows/ai-suggest-weekly-tasks';
-import { suggestMonthlyTasks } from '@/ai/flows/ai-suggest-monthly-tasks';
-import { suggestYearlyTasks } from '@/ai/flows/ai-suggest-yearly-tasks';
 import { Calendar, ChevronsRight, Milestone, Star } from 'lucide-react';
 
 export default function Home() {
@@ -14,7 +10,6 @@ export default function Home() {
       label: '每日',
       icon: <Calendar className="w-5 h-5 mr-2" />,
       planType: 'Daily' as const,
-      suggestionAction: suggestDailyTasks,
       placeholder: '例如：完成项目提案，跑步30分钟，读一章书。',
     },
     {
@@ -22,7 +17,6 @@ export default function Home() {
       label: '每周',
       icon: <ChevronsRight className="w-5 h-5 mr-2" />,
       planType: 'Weekly' as const,
-      suggestionAction: suggestWeeklyTasks,
       placeholder: '例如：完成周报，准备一周的饭菜，参加营销会议。',
     },
     {
@@ -30,7 +24,6 @@ export default function Home() {
       label: '每月',
       icon: <Milestone className="w-5 h-5 mr-2" />,
       planType: 'Monthly' as const,
-      suggestionAction: suggestMonthlyTasks,
       placeholder: '例如：发布新功能，用户参与度提高10%，周末旅行。',
     },
     {
@@ -38,7 +31,6 @@ export default function Home() {
       label: '年度',
       icon: <Star className="w-5 h-5 mr-2" />,
       planType: 'Yearly' as const,
-      suggestionAction: suggestYearlyTasks,
       placeholder: '例如：获得晋升，学习一门新的编程语言，去一个新的国家旅行。',
     },
   ];
@@ -59,7 +51,6 @@ export default function Home() {
             <TabsContent key={plan.value} value={plan.value} className="mt-6">
               <PlanForm
                 planType={plan.planType}
-                suggestionAction={plan.suggestionAction}
                 placeholder={plan.placeholder}
               />
             </TabsContent>
