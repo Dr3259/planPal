@@ -159,11 +159,6 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
     return (
         <div className="relative">
             <div className="flex items-center gap-2 group">
-                 <div className="absolute -left-3.5 top-0 h-full">
-                    {level > 0 && <div className={cn("absolute top-0 h-1/2 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
-                    {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
-                </div>
-
                 {editing ? (
                     <div className="flex-1 flex items-center gap-1 py-1">
                         <Input
@@ -231,6 +226,10 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                         </TooltipProvider>
                     </div>
                 )}
+                <div className="absolute -left-3.5 top-0 h-full">
+                    {level > 0 && <div className={cn("absolute top-0 h-1/2 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
+                    {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
+                </div>
             </div>
             <div className={cn("pl-5 flex flex-col")}>
                  {item.children.map((child, index) => (
