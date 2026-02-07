@@ -210,7 +210,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
         <div className="space-y-2">
             <Label className="text-lg font-semibold">{title}</Label>
-            <div className="space-y-2 rounded-lg border p-4 min-h-[120px]">
+            <div className="space-y-2 min-h-[120px]">
                 {goals[period].length > 0 ? goals[period].map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
                         <span>{item}</span>
@@ -278,7 +278,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
         <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6">
         {planType === 'Daily' ? <DailyPlanForm mode={mode} /> : (
             <div className="space-y-2">
                 <Label htmlFor={textareaId} className="text-lg">{currentTranslation.goals}</Label>
