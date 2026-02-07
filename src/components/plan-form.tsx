@@ -302,7 +302,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 <h3 className="text-xl font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="min-h-[10rem] py-2">
+            <div className="py-2">
                 {goals[period].length > 0 ? (
                     <div className="flex flex-wrap gap-4">
                         {goals[period].map((item, index) => {
@@ -369,6 +369,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
 }
 
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const timePeriods = ['morning', 'afternoon', 'evening'];
 
 const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     const weeklyTranslations = {
@@ -393,7 +394,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     };
   
     const t = weeklyTranslations[mode];
-    const timePeriods = ['morning', 'afternoon', 'evening'];
   
     type WeeklyGoals = Record<string, Record<string, string[]>>;
     const weeklyStorageKey = `plan-app-data-${mode}-Weekly-goals`;
@@ -439,7 +439,7 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
         }
       }
       setIsLoaded(true);
-    }, [weeklyStorageKey, dailyStorageKey]);
+    }, [mode, weeklyStorageKey, dailyStorageKey]);
   
     useEffect(() => {
       if (!isLoaded) return;
@@ -723,37 +723,180 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 };
 
+const quarterKeys = ['q1', 'q2', 'q3', 'q4'];
+
+const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const yearlyTranslations = {
+      work: {
+        title: "年度里程碑",
+        quarterLabels: ["第一季度 (1月-3月)", "第二季度 (4月-6月)", "第三季度 (7月-9月)", "第四季度 (10月-12月)"],
+        addPrompt: "添加本季度核心目标...",
+        emptyQuarter: "本季度暂无核心目标",
+      },
+      study: {
+        title: "年度学习地图",
+        quarterLabels: ["第一季度 (1月-3月)", "第二季度 (4月-6月)", "第三季度 (7月-9月)", "第四季度 (10月-12月)"],
+        addPrompt: "添加本季度学习目标...",
+        emptyQuarter: "本季度暂无学习目标",
+      }
+    };
+
+    const t = yearlyTranslations[mode];
+    const storageKey = `plan-app-data-${mode}-Yearly-goals`;
+
+    type YearlyGoals = Record<string, string[]>;
+
+    const [goals, setGoals] = useState<YearlyGoals>({});
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [newItem, setNewItem] = useState<Record<string, string>>({});
+    const [editingInfo, setEditingInfo] = useState<{ quarter: string, index: number } | null>(null);
+    const [editingText, setEditingText] = useState('');
+
+    useEffect(() => {
+        const savedGoals = localStorage.getItem(storageKey);
+        if (savedGoals) {
+            try {
+                setGoals(JSON.parse(savedGoals));
+            } catch (e) {
+                console.error("Failed to parse yearly goals", e);
+            }
+        }
+        setIsLoaded(true);
+    }, [storageKey]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        localStorage.setItem(storageKey, JSON.stringify(goals));
+    }, [goals, storageKey, isLoaded]);
+
+    const handleNewItemChange = (quarter: string, value: string) => {
+        setNewItem(prev => ({ ...prev, [quarter]: value }));
+    };
+
+    const addGoal = (quarter: string) => {
+        const item = newItem[quarter];
+        if (!item || !item.trim()) return;
+        setGoals(prev => {
+            const quarterGoals = prev[quarter] || [];
+            if (quarterGoals.includes(item.trim())) return prev;
+            return {
+                ...prev,
+                [quarter]: [...quarterGoals, item.trim()]
+            };
+        });
+        handleNewItemChange(quarter, '');
+    };
+
+    const removeGoal = (quarter: string, indexToRemove: number) => {
+        setGoals(prev => {
+            const newGoals = { ...prev };
+            if (newGoals[quarter]) {
+                newGoals[quarter] = newGoals[quarter].filter((_, index) => index !== indexToRemove);
+            }
+            return newGoals;
+        });
+    };
+
+    const handleStartEdit = (quarter: string, index: number, text: string) => {
+        setEditingInfo({ quarter, index });
+        setEditingText(text);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingInfo(null);
+        setEditingText('');
+    };
+
+    const handleSaveEdit = () => {
+        if (!editingInfo || !editingText.trim()) {
+            handleCancelEdit();
+            return;
+        }
+        const { quarter, index } = editingInfo;
+        setGoals(prev => {
+            const updatedGoals = { ...prev };
+            const updatedQuarterGoals = [...(updatedGoals[quarter] || [])];
+            updatedQuarterGoals[index] = editingText.trim();
+            updatedGoals[quarter] = updatedQuarterGoals;
+            return updatedGoals;
+        });
+        handleCancelEdit();
+    };
+    
+    return (
+        <div className="space-y-4">
+             <h3 className="text-lg font-semibold">{t.title}</h3>
+            <Accordion type="multiple" defaultValue={['q1']} className="w-full">
+                {quarterKeys.map((quarterKey, index) => (
+                    <AccordionItem value={quarterKey} key={quarterKey}>
+                        <AccordionTrigger>
+                            <div className="flex items-center gap-4">
+                                <span>{t.quarterLabels[index]}</span>
+                                <Badge variant="secondary">{(goals[quarterKey] || []).length} 个目标</Badge>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <div className="space-y-3 pl-2">
+                                {(goals[quarterKey] || []).length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {(goals[quarterKey] || []).map((goal, goalIndex) => (
+                                            <li key={goalIndex} className="group flex items-center gap-2">
+                                                {editingInfo?.quarter === quarterKey && editingInfo?.index === goalIndex ? (
+                                                    <>
+                                                        <Input
+                                                            value={editingText}
+                                                            onChange={(e) => setEditingText(e.target.value)}
+                                                            className="flex-1 h-8 text-sm"
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleSaveEdit();
+                                                                if (e.key === 'Escape') handleCancelEdit();
+                                                            }}
+                                                            onBlur={handleSaveEdit}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span 
+                                                            className="flex-1 cursor-pointer"
+                                                            onDoubleClick={() => handleStartEdit(quarterKey, goalIndex, goal)}
+                                                        >
+                                                            {goal}
+                                                        </span>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => removeGoal(quarterKey, goalIndex)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive/80" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">{t.emptyQuarter}</p>
+                                )}
+                                <div className="flex gap-2 pt-2">
+                                    <Input
+                                        placeholder={t.addPrompt}
+                                        value={newItem[quarterKey] || ''}
+                                        onChange={(e) => handleNewItemChange(quarterKey, e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addGoal(quarterKey)}
+                                        className="h-9"
+                                    />
+                                    <Button onClick={() => addGoal(quarterKey)}>添加</Button>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        </div>
+    );
+};
+
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
-  const textareaId = `${planType.toLowerCase()}-goals`;
-  const storageKey = `plan-app-data-${mode}-${planType}`;
-
-  const [goals, setGoals] = useState('');
-
-  useEffect(() => {
-      if (planType === 'Daily' || planType === 'Weekly' || planType === 'Monthly') return;
-      const savedGoals = localStorage.getItem(storageKey);
-      if (savedGoals) {
-          try {
-              const parsedGoals = JSON.parse(savedGoals);
-              if (typeof parsedGoals === 'string') {
-                setGoals(parsedGoals);
-              }
-          } catch(e) {
-              setGoals(savedGoals); // Assume it was a raw string
-          }
-      } else {
-        setGoals('');
-      }
-  }, [storageKey, planType]);
-
-  useEffect(() => {
-    if (planType === 'Daily' || planType === 'Weekly' || planType === 'Monthly') return;
-    localStorage.setItem(storageKey, JSON.stringify(goals));
-  }, [goals, storageKey, planType]);
-
-
+  
   return (
     <Card className="w-full shadow-lg max-w-7xl mx-auto">
       <CardHeader>
@@ -767,16 +910,16 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
           <WeeklyPlanView mode={mode} />
         ) : planType === 'Monthly' ? (
           <MonthlyPlanView mode={mode} />
+        ) : planType === 'Yearly' ? (
+            <YearlyPlanView mode={mode} />
         ) : (
             <div className="space-y-2">
-                <Label htmlFor={textareaId} className="text-lg">{currentTranslation.goals}</Label>
+                <Label htmlFor="legacy-goals" className="text-lg">{currentTranslation.goals}</Label>
                 <Textarea
-                  id={textareaId}
+                  id="legacy-goals"
                   placeholder={placeholder}
                   className="resize-none"
                   rows={8}
-                  value={goals}
-                  onChange={(e) => setGoals(e.target.value)}
                 />
             </div>
         )}
