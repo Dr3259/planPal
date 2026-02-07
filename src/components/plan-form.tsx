@@ -13,12 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -128,12 +122,12 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                 <ScrollArea className="h-72">
                     <div className="space-y-2 pr-4">
                         {suggestions.map((suggestion, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                                <span className="flex-1 break-words">{suggestion}</span>
-                                <div className="flex items-center gap-1 pl-2">
+                            <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-card border hover:bg-muted/50">
+                                <span className="flex-1 break-words mr-2">{suggestion}</span>
+                                <div className="flex items-center gap-1">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                                                 <Plus className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
@@ -143,7 +137,7 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                                             <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveSuggestion(index)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>
@@ -222,40 +216,36 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     };
 
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
-        <AccordionItem value={period} key={period}>
-            <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-                <div className="flex items-center gap-2">
-                    <span>{title}</span>
-                    {goals[period].length > 0 && <Badge variant="secondary">{goals[period].length}</Badge>}
-                </div>
-            </AccordionTrigger>
-            <AccordionContent>
-                 <div className="space-y-2 pt-2">
-                    {goals[period].length > 0 ? goals[period].map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
-                            <span>{item}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeGoal(period, index)}>
+        <div key={period}>
+            <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+                {goals[period].length > 0 && <Badge>{goals[period].length}</Badge>}
+            </div>
+            <div className="space-y-3">
+                {goals[period].length > 0 ? (
+                    goals[period].map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-card border">
+                            <span className="text-card-foreground">{item}</span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeGoal(period, index)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
-                    )) : <p className="text-muted-foreground text-sm">{dailyTranslations.noPlans}</p>}
-                </div>
-            </AccordionContent>
-        </AccordionItem>
-    );
-    
-    const defaultOpenValues = Object.keys(goals).filter(
-        (period) => goals[period as keyof typeof goals].length > 0
+                    ))
+                ) : (
+                    <div className="flex items-center justify-center h-20 rounded-lg border-2 border-dashed border-muted-foreground/30">
+                        <p className="text-muted-foreground">{dailyTranslations.noPlans}</p>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-                <Accordion key={String(isLoaded)} type="multiple" className="w-full" defaultValue={defaultOpenValues}>
-                    {renderPeriodPlans('morning', dailyTranslations.morning)}
-                    {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
-                    {renderPeriodPlans('evening', dailyTranslations.evening)}
-                </Accordion>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div className="lg:col-span-2 space-y-8">
+                {renderPeriodPlans('morning', dailyTranslations.morning)}
+                {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
+                {renderPeriodPlans('evening', dailyTranslations.evening)}
             </div>
             <div>
                 <SuggestedItems
@@ -300,7 +290,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
 
 
   return (
-    <Card className="w-full shadow-lg">
+    <Card className="w-full shadow-lg max-w-7xl mx-auto">
       <CardHeader>
         <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
         <CardDescription>{currentTranslation.description}</CardDescription>
