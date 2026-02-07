@@ -960,6 +960,23 @@ const MonthInfo = () => {
     );
 };
 
+const YearInfo = () => {
+    const [dateString, setDateString] = useState('');
+
+    useEffect(() => {
+        const today = new Date();
+        setDateString(today.getFullYear().toString() + '年');
+    }, []);
+
+    if (!dateString) return null;
+
+    return (
+        <span className="text-base font-normal text-muted-foreground tracking-wide">
+            {dateString}
+        </span>
+    );
+};
+
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
@@ -972,6 +989,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
             {planType === 'Daily' && <TodayDate />}
             {planType === 'Weekly' && <WeekInfo />}
             {planType === 'Monthly' && <MonthInfo />}
+            {planType === 'Yearly' && <YearInfo />}
         </div>
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
