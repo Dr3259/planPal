@@ -273,25 +273,25 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     };
 
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
-        <div key={period}>
-            <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <div>
+            <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-xl font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="rounded-lg bg-muted/40 p-4 min-h-[8rem]">
+            <div className="rounded-lg min-h-[10rem] py-2">
                 {goals[period].length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-4">
                         {goals[period].map((item, index) => (
-                            <Card key={index} className="group flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-background shadow-sm">
-                                <span className="text-card-foreground break-words">{item}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
+                             <div key={index} className="group relative bg-accent/20 p-4 rounded-lg shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105">
+                                <p className="text-sm font-medium text-accent-foreground break-words">{item}</p>
+                                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => removeGoal(period, index)}>
                                     <Trash2 className="h-4 w-4 text-destructive/80" />
                                 </Button>
-                            </Card>
+                            </div>
                         ))}
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center w-full h-full pt-4">
+                    <div className="flex items-center justify-center border-2 border-dashed rounded-lg w-full min-h-[10rem]">
                         <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
                     </div>
                 )}
