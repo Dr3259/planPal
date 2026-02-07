@@ -92,6 +92,16 @@ const defaultSuggestions = {
     study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记']
 };
 
+const noteColors = [
+    { bg: 'bg-amber-100/60', text: 'text-amber-800' },
+    { bg: 'bg-emerald-100/60', text: 'text-emerald-800' },
+    { bg: 'bg-sky-100/60', text: 'text-sky-800' },
+    { bg: 'bg-rose-100/60', text: 'text-rose-800' },
+    { bg: 'bg-violet-100/60', text: 'text-violet-800' },
+    { bg: 'bg-teal-100/60', text: 'text-teal-800' },
+    { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
+];
+
 const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
     const [newSuggestion, setNewSuggestion] = useState('');
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -230,16 +240,6 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
         return hash;
     };
 
-    const noteColors = [
-        { bg: 'bg-amber-100/60', text: 'text-amber-800' },
-        { bg: 'bg-emerald-100/60', text: 'text-emerald-800' },
-        { bg: 'bg-sky-100/60', text: 'text-sky-800' },
-        { bg: 'bg-rose-100/60', text: 'text-rose-800' },
-        { bg: 'bg-violet-100/60', text: 'text-violet-800' },
-        { bg: 'bg-teal-100/60', text: 'text-teal-800' },
-        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
-    ];
-
     useEffect(() => {
         const savedGoals = localStorage.getItem(goalsStorageKey);
         if (savedGoals) {
@@ -367,6 +367,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 }
 
+const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
 const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     const weeklyTranslations = {
       work: {
@@ -390,7 +392,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     };
   
     const t = weeklyTranslations[mode];
-    const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const timePeriods = ['morning', 'afternoon', 'evening'];
   
     type WeeklyGoals = Record<string, Record<string, string[]>>;
@@ -412,16 +413,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
         }
         return hash;
     };
-  
-    const noteColors = [
-        { bg: 'bg-amber-100/60', text: 'text-amber-800' },
-        { bg: 'bg-emerald-100/60', text: 'text-emerald-800' },
-        { bg: 'bg-sky-100/60', text: 'text-sky-800' },
-        { bg: 'bg-rose-100/60', text: 'text-rose-800' },
-        { bg: 'bg-violet-100/60', text: 'text-violet-800' },
-        { bg: 'bg-teal-100/60', text: 'text-teal-800' },
-        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
-    ];
   
     useEffect(() => {
       const savedWeeklyGoals = localStorage.getItem(weeklyStorageKey);
