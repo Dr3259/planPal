@@ -137,6 +137,11 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
         setEditing(false);
     };
 
+    const handleCancel = () => {
+        setEditText(item.text);
+        setEditing(false);
+    };
+
     const handleAddChild = () => {
         if (newChildText.trim()) {
             onAddChild(item.id, newChildText.trim());
@@ -160,7 +165,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                 </div>
 
                 {editing ? (
-                    <div className="flex-1 flex items-center gap-2 py-1">
+                    <div className="flex-1 flex items-center gap-1 py-1">
                         <Input
                             ref={inputRef}
                             value={editText}
@@ -168,10 +173,15 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                             className="flex-1 h-8 text-sm bg-background"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSave();
-                                if (e.key === 'Escape') setEditing(false);
+                                if (e.key === 'Escape') handleCancel();
                             }}
-                            onBlur={handleSave}
                         />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleSave}>
+                            <Check className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancel}>
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
                 ) : (
                     <div 
@@ -564,7 +574,12 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
       const savedWeeklyGoals = localStorage.getItem(weeklyStorageKey);
       if (savedWeeklyGoals) {
         try {
-          setGoals(JSON.parse(savedWeeklyGoals));
+          const parsedGoals = JSON.parse(savedWeeklyGoals);
+          if (typeof parsedGoals === 'object' && parsedGoals !== null) {
+            setGoals(parsedGoals);
+          } else {
+            setGoals({});
+          }
         } catch (e) { 
             console.error("Failed to parse weekly goals", e);
             setGoals({});
@@ -806,7 +821,7 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
                                         {(goals[weekKey] || []).map((goal, goalIndex) => (
                                             <li key={goalIndex} className="group flex items-center gap-2">
                                                 {editingInfo?.week === weekKey && editingInfo?.index === goalIndex ? (
-                                                    <>
+                                                    <React.Fragment>
                                                         <Input
                                                             value={editingText}
                                                             onChange={(e) => setEditingText(e.target.value)}
@@ -816,9 +831,14 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
                                                                 if (e.key === 'Enter') handleSaveEdit();
                                                                 if (e.key === 'Escape') handleCancelEdit();
                                                             }}
-                                                            onBlur={handleSaveEdit}
                                                         />
-                                                    </>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleSaveEdit}>
+                                                            <Check className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancelEdit}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </React.Fragment>
                                                 ) : (
                                                     <>
                                                         <span 
@@ -976,7 +996,7 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
                                         {(goals[quarterKey] || []).map((goal, goalIndex) => (
                                             <li key={goalIndex} className="group flex items-center gap-2">
                                                 {editingInfo?.quarter === quarterKey && editingInfo?.index === goalIndex ? (
-                                                    <>
+                                                    <React.Fragment>
                                                         <Input
                                                             value={editingText}
                                                             onChange={(e) => setEditingText(e.target.value)}
@@ -986,9 +1006,14 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
                                                                 if (e.key === 'Enter') handleSaveEdit();
                                                                 if (e.key === 'Escape') handleCancelEdit();
                                                             }}
-                                                            onBlur={handleSaveEdit}
                                                         />
-                                                    </>
+                                                         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleSaveEdit}>
+                                                            <Check className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancelEdit}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </React.Fragment>
                                                 ) : (
                                                     <>
                                                         <span 
@@ -1151,5 +1176,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
     </Card>
   );
 }
+
+    
 
     
