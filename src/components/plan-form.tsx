@@ -128,7 +128,7 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
     };
 
     return (
-        <div className="rounded-lg h-full">
+        <div className="h-full">
             <div className="mb-4 flex items-start justify-between">
                 <div>
                     <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
@@ -149,7 +149,7 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
             <ScrollArea className="h-80">
                 <div className="space-y-2 pr-4">
                     {suggestions.map((suggestion, index) => (
-                        <Card key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm min-h-[46px]">
+                        <Card key={index} className="flex items-center justify-between p-2.5 bg-background shadow-sm min-h-[46px]">
                            {editingIndex === index ? (
                                 <>
                                     <Input
@@ -300,7 +300,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 <h3 className="text-xl font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="rounded-lg min-h-[10rem] py-2">
+            <div className="min-h-[10rem] py-2">
                 {goals[period].length > 0 ? (
                     <div className="flex flex-wrap gap-4">
                         {goals[period].map((item, index) => {
