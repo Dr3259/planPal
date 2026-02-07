@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
@@ -465,10 +466,11 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
 
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
         <div>
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3">
                 <h3 className="text-xl font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
+            <Separator className="my-4" />
             <div className="py-2">
                 {goals[period].length > 0 ? (
                     <div className="flex flex-wrap gap-4">
