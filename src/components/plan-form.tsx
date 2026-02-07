@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
@@ -71,6 +72,34 @@ const translations = {
 
 const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     const dailyTranslations = translations[mode]['Daily'];
+    const storageKey = `plan-app-data-${mode}-Daily`;
+    
+    const [goals, setGoals] = useState({ morning: '', afternoon: '', evening: '' });
+
+    useEffect(() => {
+        const savedGoals = localStorage.getItem(storageKey);
+        if (savedGoals) {
+            try {
+                const parsedGoals = JSON.parse(savedGoals);
+                if (typeof parsedGoals === 'object' && parsedGoals !== null) {
+                    setGoals(parsedGoals);
+                }
+            } catch (e) {
+                console.error("Failed to parse daily goals from localStorage", e);
+            }
+        } else {
+            setGoals({ morning: '', afternoon: '', evening: '' });
+        }
+    }, [storageKey]);
+
+    useEffect(() => {
+        localStorage.setItem(storageKey, JSON.stringify(goals));
+    }, [goals, storageKey]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>, period: 'morning' | 'afternoon' | 'evening') => {
+        setGoals(prev => ({ ...prev, [period]: e.target.value }));
+    };
+
     return (
         <div className="space-y-6">
             <div className="space-y-2">
@@ -80,6 +109,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                   placeholder={dailyTranslations.morning_placeholder}
                   className="resize-none"
                   rows={4}
+                  value={goals.morning}
+                  onChange={(e) => handleChange(e, 'morning')}
                 />
             </div>
             <div className="space-y-2">
@@ -89,6 +120,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                   placeholder={dailyTranslations.afternoon_placeholder}
                   className="resize-none"
                   rows={4}
+                  value={goals.afternoon}
+                  onChange={(e) => handleChange(e, 'afternoon')}
                 />
             </div>
             <div className="space-y-2">
@@ -98,6 +131,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                   placeholder={dailyTranslations.evening_placeholder}
                   className="resize-none"
                   rows={4}
+                  value={goals.evening}
+                  onChange={(e) => handleChange(e, 'evening')}
                 />
             </div>
         </div>
@@ -107,6 +142,31 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
   const textareaId = `${planType.toLowerCase()}-goals`;
+  const storageKey = `plan-app-data-${mode}-${planType}`;
+
+  const [goals, setGoals] = useState('');
+
+  useEffect(() => {
+      const savedGoals = localStorage.getItem(storageKey);
+      if (savedGoals) {
+          try {
+              const parsedGoals = JSON.parse(savedGoals);
+              if (typeof parsedGoals === 'string') {
+                setGoals(parsedGoals);
+              }
+          } catch(e) {
+              // Data might not be JSON if stored as a raw string previously
+              console.error(`Failed to parse goals for ${storageKey}`, e);
+          }
+      } else {
+        setGoals('');
+      }
+  }, [storageKey]);
+
+  useEffect(() => {
+      localStorage.setItem(storageKey, JSON.stringify(goals));
+  }, [goals, storageKey]);
+
 
   return (
     <Card className="w-full shadow-lg">
@@ -123,6 +183,8 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
                   placeholder={placeholder}
                   className="resize-none"
                   rows={8}
+                  value={goals}
+                  onChange={(e) => setGoals(e.target.value)}
                 />
             </div>
         )}
