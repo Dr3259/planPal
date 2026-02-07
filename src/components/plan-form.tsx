@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import React from 'react';
 
@@ -438,7 +439,7 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
         }
       }
       setIsLoaded(true);
-    }, [weeklyStorageKey, dailyStorageKey, daysOfWeek]);
+    }, [weeklyStorageKey, dailyStorageKey]);
   
     useEffect(() => {
       if (!isLoaded) return;
@@ -552,6 +553,177 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     );
   };
 
+const weekKeys = ['week1', 'week2', 'week3', 'week4', 'week5'];
+
+const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const monthlyTranslations = {
+      work: {
+        title: "本月里程碑",
+        weekLabels: ["第一周", "第二周", "第三周", "第四周", "第五周"],
+        addPrompt: "添加本周关键目标...",
+        emptyWeek: "本周暂无关键目标",
+      },
+      study: {
+        title: "本月学习蓝图",
+        weekLabels: ["第一周", "第二周", "第三周", "第四周", "第五周"],
+        addPrompt: "添加本周学习重点...",
+        emptyWeek: "本周暂无学习重点",
+      }
+    };
+
+    const t = monthlyTranslations[mode];
+    const storageKey = `plan-app-data-${mode}-Monthly-goals`;
+
+    type MonthlyGoals = Record<string, string[]>;
+
+    const [goals, setGoals] = useState<MonthlyGoals>({});
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [newItem, setNewItem] = useState<Record<string, string>>({});
+    const [editingInfo, setEditingInfo] = useState<{ week: string, index: number } | null>(null);
+    const [editingText, setEditingText] = useState('');
+
+    useEffect(() => {
+        const savedGoals = localStorage.getItem(storageKey);
+        if (savedGoals) {
+            try {
+                setGoals(JSON.parse(savedGoals));
+            } catch (e) {
+                console.error("Failed to parse monthly goals", e);
+            }
+        }
+        setIsLoaded(true);
+    }, [storageKey]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        localStorage.setItem(storageKey, JSON.stringify(goals));
+    }, [goals, storageKey, isLoaded]);
+
+    const handleNewItemChange = (week: string, value: string) => {
+        setNewItem(prev => ({ ...prev, [week]: value }));
+    };
+
+    const addGoal = (week: string) => {
+        const item = newItem[week];
+        if (!item || !item.trim()) return;
+        setGoals(prev => {
+            const weekGoals = prev[week] || [];
+            if (weekGoals.includes(item.trim())) return prev;
+            return {
+                ...prev,
+                [week]: [...weekGoals, item.trim()]
+            };
+        });
+        handleNewItemChange(week, '');
+    };
+
+    const removeGoal = (week: string, indexToRemove: number) => {
+        setGoals(prev => {
+            const newGoals = { ...prev };
+            if (newGoals[week]) {
+                newGoals[week] = newGoals[week].filter((_, index) => index !== indexToRemove);
+            }
+            return newGoals;
+        });
+    };
+
+    const handleStartEdit = (week: string, index: number, text: string) => {
+        setEditingInfo({ week, index });
+        setEditingText(text);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingInfo(null);
+        setEditingText('');
+    };
+
+    const handleSaveEdit = () => {
+        if (!editingInfo || !editingText.trim()) {
+            handleCancelEdit();
+            return;
+        }
+        const { week, index } = editingInfo;
+        setGoals(prev => {
+            const updatedGoals = { ...prev };
+            const updatedWeekGoals = [...(updatedGoals[week] || [])];
+            updatedWeekGoals[index] = editingText.trim();
+            updatedGoals[week] = updatedWeekGoals;
+            return updatedGoals;
+        });
+        handleCancelEdit();
+    };
+    
+    return (
+        <div className="space-y-4">
+             <h3 className="text-lg font-semibold">{t.title}</h3>
+            <Accordion type="multiple" defaultValue={['week1']} className="w-full">
+                {weekKeys.map((weekKey, index) => (
+                    <AccordionItem value={weekKey} key={weekKey}>
+                        <AccordionTrigger>
+                            <div className="flex items-center gap-4">
+                                <span>{t.weekLabels[index]}</span>
+                                <Badge variant="secondary">{(goals[weekKey] || []).length} 个目标</Badge>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <div className="space-y-3 pl-2">
+                                {(goals[weekKey] || []).length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {(goals[weekKey] || []).map((goal, goalIndex) => (
+                                            <li key={goalIndex} className="group flex items-center gap-2">
+                                                {editingInfo?.week === weekKey && editingInfo?.index === goalIndex ? (
+                                                    <>
+                                                        <Input
+                                                            value={editingText}
+                                                            onChange={(e) => setEditingText(e.target.value)}
+                                                            className="flex-1 h-8 text-sm"
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleSaveEdit();
+                                                                if (e.key === 'Escape') handleCancelEdit();
+                                                            }}
+                                                            onBlur={handleSaveEdit}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span 
+                                                            className="flex-1 cursor-pointer"
+                                                            onDoubleClick={() => handleStartEdit(weekKey, goalIndex, goal)}
+                                                        >
+                                                            {goal}
+                                                        </span>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => removeGoal(weekKey, goalIndex)}>
+                                                            <Trash2 className="h-4 w-4 text-destructive/80" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">{t.emptyWeek}</p>
+                                )}
+                                <div className="flex gap-2 pt-2">
+                                    <Input
+                                        placeholder={t.addPrompt}
+                                        value={newItem[weekKey] || ''}
+                                        onChange={(e) => handleNewItemChange(weekKey, e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addGoal(weekKey)}
+                                        className="h-9"
+                                    />
+                                    <Button onClick={() => addGoal(weekKey)}>添加</Button>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+        </div>
+    );
+};
+
+
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
   const textareaId = `${planType.toLowerCase()}-goals`;
@@ -560,7 +732,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
   const [goals, setGoals] = useState('');
 
   useEffect(() => {
-      if (planType === 'Daily' || planType === 'Weekly') return;
+      if (planType === 'Daily' || planType === 'Weekly' || planType === 'Monthly') return;
       const savedGoals = localStorage.getItem(storageKey);
       if (savedGoals) {
           try {
@@ -577,7 +749,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
   }, [storageKey, planType]);
 
   useEffect(() => {
-    if (planType === 'Daily' || planType === 'Weekly') return;
+    if (planType === 'Daily' || planType === 'Weekly' || planType === 'Monthly') return;
     localStorage.setItem(storageKey, JSON.stringify(goals));
   }, [goals, storageKey, planType]);
 
@@ -593,6 +765,8 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
           <DailyPlanForm mode={mode} />
         ) : planType === 'Weekly' ? (
           <WeeklyPlanView mode={mode} />
+        ) : planType === 'Monthly' ? (
+          <MonthlyPlanView mode={mode} />
         ) : (
             <div className="space-y-2">
                 <Label htmlFor={textareaId} className="text-lg">{currentTranslation.goals}</Label>
