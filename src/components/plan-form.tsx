@@ -90,7 +90,7 @@ const defaultSuggestions = {
     study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记']
 };
 
-const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal, onToggle }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void, onToggle?: () => void }) => {
+const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
     const [newSuggestion, setNewSuggestion] = useState('');
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingText, setEditingText] = useState('');
@@ -133,22 +133,6 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal, onToggle }
                     <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
                     <p className="text-sm text-muted-foreground">{dailyTranslations.suggestionsDescription}</p>
                 </div>
-                {onToggle && (
-                    <div className="hidden lg:block">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="-mr-2 -mt-1" onClick={onToggle}>
-                                        <PanelRightClose className="h-5 w-5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>隐藏建议项</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                )}
             </div>
             
             <div className="flex gap-2 mb-4">
@@ -318,27 +302,25 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     return (
         <div className="relative">
              <div className="absolute top-0 right-0 hidden lg:block">
-                {!isSidebarOpen && (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => setIsSidebarOpen(true)}
-                                >
-                                    <PanelLeftOpen className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>显示建议项</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            >
+                                {isSidebarOpen ? <PanelRightClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{isSidebarOpen ? '隐藏建议项' : '显示建议项'}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div className={`${isSidebarOpen ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-6`}>
+                <div className={`${isSidebarOpen ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-6 transition-all duration-300 ease-in-out`}>
                     {renderPeriodPlans('morning', dailyTranslations.morning)}
                     {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
                     {renderPeriodPlans('evening', dailyTranslations.evening)}
@@ -349,7 +331,6 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                         suggestions={suggestions}
                         setSuggestions={setSuggestions}
                         addGoal={addGoal}
-                        onToggle={() => setIsSidebarOpen(false)}
                     />
                 </div>
             </div>
