@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -310,7 +311,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                              const color = noteColors[Math.abs(hash) % noteColors.length];
                              return (
                                  <div key={index} className={cn(
-                                     "group relative p-4 shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border-0",
+                                     "group relative p-4 shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105",
                                      color.bg, color.text
                                  )}>
                                 <p className="text-sm font-medium break-words">{item}</p>
@@ -397,7 +398,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
   
     type WeeklyGoals = Record<string, Record<string, string[]>>;
     const weeklyStorageKey = `plan-app-data-${mode}-Weekly-goals`;
-    const dailyStorageKey = `plan-app-data-${mode}-Daily-goals`;
     
     const [goals, setGoals] = useState<WeeklyGoals>({});
     const [isLoaded, setIsLoaded] = useState(false);
@@ -420,26 +420,15 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
       if (savedWeeklyGoals) {
         try {
           setGoals(JSON.parse(savedWeeklyGoals));
-        } catch (e) { console.error("Failed to parse weekly goals", e); }
-      } else {
-        const savedDailyGoals = localStorage.getItem(dailyStorageKey);
-        if (savedDailyGoals) {
-          try {
-            const dailyGoals = JSON.parse(savedDailyGoals);
-            const newWeeklyGoals: WeeklyGoals = {};
-            daysOfWeek.forEach(day => {
-              newWeeklyGoals[day] = {
-                morning: [...(dailyGoals.morning || [])],
-                afternoon: [...(dailyGoals.afternoon || [])],
-                evening: [...(dailyGoals.evening || [])],
-              };
-            });
-            setGoals(newWeeklyGoals);
-          } catch (e) { console.error("Failed to parse daily goals for weekly seeding", e); }
+        } catch (e) { 
+            console.error("Failed to parse weekly goals", e);
+            setGoals({});
         }
+      } else {
+        setGoals({});
       }
       setIsLoaded(true);
-    }, [mode, weeklyStorageKey, dailyStorageKey]);
+    }, [mode, weeklyStorageKey]);
   
     useEffect(() => {
       if (!isLoaded) return;
