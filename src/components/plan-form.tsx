@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 
 type PlanFormProps = {
@@ -230,13 +231,13 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     };
 
     const noteColors = [
-        { bg: 'bg-amber-100/60', text: 'text-amber-800', border: 'border-amber-200/80' },
-        { bg: 'bg-emerald-100/60', text: 'text-emerald-800', border: 'border-emerald-200/80' },
-        { bg: 'bg-sky-100/60', text: 'text-sky-800', border: 'border-sky-200/80' },
-        { bg: 'bg-rose-100/60', text: 'text-rose-800', border: 'border-rose-200/80' },
-        { bg: 'bg-violet-100/60', text: 'text-violet-800', border: 'border-violet-200/80' },
-        { bg: 'bg-teal-100/60', text: 'text-teal-800', border: 'border-teal-200/80' },
-        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800', border: 'border-fuchsia-200/80' },
+        { bg: 'bg-amber-100/60', text: 'text-amber-800' },
+        { bg: 'bg-emerald-100/60', text: 'text-emerald-800' },
+        { bg: 'bg-sky-100/60', text: 'text-sky-800' },
+        { bg: 'bg-rose-100/60', text: 'text-rose-800' },
+        { bg: 'bg-violet-100/60', text: 'text-violet-800' },
+        { bg: 'bg-teal-100/60', text: 'text-teal-800' },
+        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
     ];
 
     useEffect(() => {
@@ -308,8 +309,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                              const color = noteColors[Math.abs(hash) % noteColors.length];
                              return (
                                  <div key={index} className={cn(
-                                     "group relative p-4 shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border",
-                                     color.bg, color.text, color.border
+                                     "group relative p-4 shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border-0",
+                                     color.bg, color.text
                                  )}>
                                 <p className="text-sm font-medium break-words">{item}</p>
                                 <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(period, index)}>
@@ -366,6 +367,200 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 }
 
+const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const weeklyTranslations = {
+      work: {
+        days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        periods: {
+          morning: '上午',
+          afternoon: '下午',
+          evening: '晚上',
+        },
+        addPrompt: '添加新计划...'
+      },
+      study: {
+        days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        periods: {
+          morning: '上午',
+          afternoon: '下午',
+          evening: '晚上',
+        },
+        addPrompt: '添加新计划...'
+      }
+    };
+  
+    const t = weeklyTranslations[mode];
+    const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const timePeriods = ['morning', 'afternoon', 'evening'];
+  
+    type WeeklyGoals = Record<string, Record<string, string[]>>;
+    const weeklyStorageKey = `plan-app-data-${mode}-Weekly-goals`;
+    const dailyStorageKey = `plan-app-data-${mode}-Daily-goals`;
+    
+    const [goals, setGoals] = useState<WeeklyGoals>({});
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [addingInfo, setAddingInfo] = useState<{day: string, period: string} | null>(null);
+    const [newItem, setNewItem] = useState('');
+  
+    const stringToHash = (str: string) => {
+        let hash = 0;
+        if (str.length === 0) return hash;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash;
+        }
+        return hash;
+    };
+  
+    const noteColors = [
+        { bg: 'bg-amber-100/60', text: 'text-amber-800' },
+        { bg: 'bg-emerald-100/60', text: 'text-emerald-800' },
+        { bg: 'bg-sky-100/60', text: 'text-sky-800' },
+        { bg: 'bg-rose-100/60', text: 'text-rose-800' },
+        { bg: 'bg-violet-100/60', text: 'text-violet-800' },
+        { bg: 'bg-teal-100/60', text: 'text-teal-800' },
+        { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
+    ];
+  
+    useEffect(() => {
+      const savedWeeklyGoals = localStorage.getItem(weeklyStorageKey);
+      if (savedWeeklyGoals) {
+        try {
+          setGoals(JSON.parse(savedWeeklyGoals));
+        } catch (e) { console.error("Failed to parse weekly goals", e); }
+      } else {
+        const savedDailyGoals = localStorage.getItem(dailyStorageKey);
+        if (savedDailyGoals) {
+          try {
+            const dailyGoals = JSON.parse(savedDailyGoals);
+            const newWeeklyGoals: WeeklyGoals = {};
+            daysOfWeek.forEach(day => {
+              newWeeklyGoals[day] = {
+                morning: [...(dailyGoals.morning || [])],
+                afternoon: [...(dailyGoals.afternoon || [])],
+                evening: [...(dailyGoals.evening || [])],
+              };
+            });
+            setGoals(newWeeklyGoals);
+          } catch (e) { console.error("Failed to parse daily goals for weekly seeding", e); }
+        }
+      }
+      setIsLoaded(true);
+    }, [weeklyStorageKey, dailyStorageKey, daysOfWeek]);
+  
+    useEffect(() => {
+      if (!isLoaded) return;
+      localStorage.setItem(weeklyStorageKey, JSON.stringify(goals));
+    }, [goals, weeklyStorageKey, isLoaded]);
+    
+    const addGoal = (day: string, period: string, item: string) => {
+      if (!item.trim()) return;
+      setGoals(prev => {
+        const dayGoals = prev[day] || {};
+        const periodGoals = dayGoals[period] || [];
+        if (periodGoals.includes(item.trim())) return prev;
+  
+        const newGoals = {
+          ...prev,
+          [day]: {
+            ...dayGoals,
+            [period]: [...periodGoals, item.trim()]
+          }
+        };
+        return newGoals;
+      });
+      setNewItem('');
+      setAddingInfo(null);
+    };
+  
+    const removeGoal = (day: string, period: string, indexToRemove: number) => {
+      setGoals(prev => {
+        const newGoals = { ...prev };
+        if (newGoals[day] && newGoals[day][period]) {
+            newGoals[day][period] = newGoals[day][period].filter((_, index) => index !== indexToRemove);
+        }
+        return newGoals;
+      });
+    };
+  
+    const handleAddClick = (day: string, period: string) => {
+      setAddingInfo({ day, period });
+      setNewItem('');
+    };
+    
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && addingInfo) {
+        addGoal(addingInfo.day, addingInfo.period, newItem);
+      }
+      if (e.key === 'Escape') {
+        setAddingInfo(null);
+        setNewItem('');
+      }
+    };
+  
+    return (
+      <div className="w-full overflow-x-auto">
+        <div className="grid grid-cols-[auto_repeat(7,minmax(120px,1fr))] border-t border-l bg-card">
+          <div className="p-2 border-b border-r font-semibold bg-muted/50 sticky left-0 z-10"></div>
+          {t.days.map(day => (
+            <div key={day} className="p-2 border-b border-r text-center font-semibold bg-muted/50">
+              {day}
+            </div>
+          ))}
+          
+          {timePeriods.map(period => (
+            <React.Fragment key={period}>
+              <div className="p-2 border-b border-r font-semibold bg-muted/50 flex items-center justify-center sticky left-0 z-10">
+                <span>{t.periods[period as keyof typeof t.periods]}</span>
+              </div>
+              {daysOfWeek.map(day => (
+                <div key={`${day}-${period}`} className="p-2 border-b border-r min-h-[12rem] flex flex-col gap-1.5">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    {(goals[day]?.[period] || []).map((item, index) => {
+                      const hash = stringToHash(item);
+                      const color = noteColors[Math.abs(hash) % noteColors.length];
+                      return (
+                         <div key={index} className={cn(
+                             "group relative p-1.5 rounded-md text-xs flex items-center justify-between",
+                             color.bg, color.text
+                         )}>
+                            <p className="break-words mr-1 flex-1 text-left">{item}</p>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(day, period, index)}>
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        </div>
+                      )
+                    })}
+                  </div>
+  
+                  {addingInfo?.day === day && addingInfo?.period === period ? (
+                    <div className="flex gap-1 mt-auto">
+                      <Input
+                        autoFocus
+                        value={newItem}
+                        onChange={e => setNewItem(e.target.value)}
+                        onKeyDown={handleInputKeyDown}
+                        onBlur={() => { setAddingInfo(null); setNewItem(''); }}
+                        placeholder={t.addPrompt}
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <Button variant="ghost" size="sm" className="w-full mt-auto text-muted-foreground hover:text-foreground" onClick={() => handleAddClick(day, period)}>
+                      <Plus className="h-4 w-4 mr-1"/> 添加
+                    </Button>
+                  )}
+  
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
   const textareaId = `${planType.toLowerCase()}-goals`;
@@ -374,7 +569,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
   const [goals, setGoals] = useState('');
 
   useEffect(() => {
-      if (planType === 'Daily') return;
+      if (planType === 'Daily' || planType === 'Weekly') return;
       const savedGoals = localStorage.getItem(storageKey);
       if (savedGoals) {
           try {
@@ -391,7 +586,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
   }, [storageKey, planType]);
 
   useEffect(() => {
-    if (planType === 'Daily') return;
+    if (planType === 'Daily' || planType === 'Weekly') return;
     localStorage.setItem(storageKey, JSON.stringify(goals));
   }, [goals, storageKey, planType]);
 
@@ -403,7 +598,11 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
-        {planType === 'Daily' ? <DailyPlanForm mode={mode} /> : (
+        {planType === 'Daily' ? (
+          <DailyPlanForm mode={mode} />
+        ) : planType === 'Weekly' ? (
+          <WeeklyPlanView mode={mode} />
+        ) : (
             <div className="space-y-2">
                 <Label htmlFor={textareaId} className="text-lg">{currentTranslation.goals}</Label>
                 <Textarea
