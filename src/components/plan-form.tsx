@@ -13,6 +13,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 
 type PlanFormProps = {
   mode: 'work' | 'study';
@@ -208,28 +215,35 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     };
 
     const renderPeriodPlans = (period: 'morning' | 'afternoon' | 'evening', title: string) => (
-        <div className="space-y-2">
-            <Label className="text-lg font-semibold">{title}</Label>
-            <div className="space-y-2 min-h-[120px]">
-                {goals[period].length > 0 ? goals[period].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
-                        <span>{item}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeGoal(period, index)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
-                )) : <p className="text-muted-foreground text-sm">{dailyTranslations.noPlans}</p>}
-            </div>
-        </div>
+        <AccordionItem value={period} key={period}>
+            <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                <div className="flex items-center gap-2">
+                    <span>{title}</span>
+                    {goals[period].length > 0 && <Badge variant="secondary">{goals[period].length}</Badge>}
+                </div>
+            </AccordionTrigger>
+            <AccordionContent>
+                 <div className="space-y-2 pt-2">
+                    {goals[period].length > 0 ? goals[period].map((item, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted">
+                            <span>{item}</span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeGoal(period, index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    )) : <p className="text-muted-foreground text-sm">{dailyTranslations.noPlans}</p>}
+                </div>
+            </AccordionContent>
+        </AccordionItem>
     );
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
+            <Accordion type="multiple" className="w-full">
                 {renderPeriodPlans('morning', dailyTranslations.morning)}
                 {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
                 {renderPeriodPlans('evening', dailyTranslations.evening)}
-            </div>
+            </Accordion>
             <div>
                 <SuggestedItems
                     mode={mode}
