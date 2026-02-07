@@ -273,18 +273,18 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 <h3 className="text-lg font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="rounded-lg bg-muted/40 p-3 min-h-[6rem] space-y-2">
+            <div className="rounded-lg bg-muted/40 p-3 min-h-[6rem] flex flex-wrap gap-2">
                 {goals[period].length > 0 ? (
                     goals[period].map((item, index) => (
-                        <div key={index} className="group flex items-center justify-between p-3 rounded-md bg-background shadow-sm">
-                            <span className="text-card-foreground flex-1 break-words">{item}</span>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
+                        <div key={index} className="group flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-background shadow-sm">
+                            <span className="text-card-foreground break-words">{item}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
                                 <Trash2 className="h-4 w-4 text-destructive/80" />
                             </Button>
                         </div>
                     ))
                 ) : (
-                    <div className="flex items-center justify-center h-full pt-4">
+                    <div className="flex items-center justify-center w-full h-full pt-4">
                         <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
                     </div>
                 )}
