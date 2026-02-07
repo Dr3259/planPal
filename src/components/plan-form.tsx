@@ -161,6 +161,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     
     const [goals, setGoals] = useState<{ morning: string[], afternoon: string[], evening: string[] }>({ morning: [], afternoon: [], evening: [] });
     const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         const savedGoals = localStorage.getItem(goalsStorageKey);
@@ -188,15 +189,18 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
         } else {
             setSuggestions(defaultSuggestions[mode]);
         }
+        setIsLoaded(true);
     }, [mode, goalsStorageKey, suggestionsStorageKey]);
 
     useEffect(() => {
+        if (!isLoaded) return;
         localStorage.setItem(goalsStorageKey, JSON.stringify(goals));
-    }, [goals, goalsStorageKey]);
+    }, [goals, goalsStorageKey, isLoaded]);
 
     useEffect(() => {
+        if (!isLoaded) return;
         localStorage.setItem(suggestionsStorageKey, JSON.stringify(suggestions));
-    }, [suggestions, suggestionsStorageKey]);
+    }, [suggestions, suggestionsStorageKey, isLoaded]);
     
     const addGoal = (period: 'morning' | 'afternoon' | 'evening', item: string) => {
         setGoals(prev => {
@@ -236,10 +240,14 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
             </AccordionContent>
         </AccordionItem>
     );
+    
+    const defaultOpenValues = Object.keys(goals).filter(
+        (period) => goals[period as keyof typeof goals].length > 0
+    );
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Accordion type="multiple" className="w-full">
+            <Accordion key={String(isLoaded)} type="multiple" className="w-full" defaultValue={defaultOpenValues}>
                 {renderPeriodPlans('morning', dailyTranslations.morning)}
                 {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
                 {renderPeriodPlans('evening', dailyTranslations.evening)}
