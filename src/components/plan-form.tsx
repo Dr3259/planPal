@@ -940,6 +940,26 @@ const WeekInfo = () => {
     );
 };
 
+const MonthInfo = () => {
+    const [dateString, setDateString] = useState('');
+
+    useEffect(() => {
+        const today = new Date();
+        setDateString(today.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: 'long',
+        }));
+    }, []);
+
+    if (!dateString) return null;
+
+    return (
+        <span className="text-base font-normal text-muted-foreground tracking-wide">
+            {dateString}
+        </span>
+    );
+};
+
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
@@ -951,6 +971,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
             <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
             {planType === 'Daily' && <TodayDate />}
             {planType === 'Weekly' && <WeekInfo />}
+            {planType === 'Monthly' && <MonthInfo />}
         </div>
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
