@@ -893,6 +893,28 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 };
 
+const TodayDate = () => {
+    const [dateString, setDateString] = useState('');
+
+    useEffect(() => {
+        const today = new Date();
+        const options: Intl.DateTimeFormatOptions = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long',
+        };
+        setDateString(new Intl.DateTimeFormat('zh-CN', options).format(today));
+    }, []);
+
+    if (!dateString) return null;
+
+    return (
+        <span className="text-base font-normal text-muted-foreground tracking-wide">
+            {dateString}
+        </span>
+    );
+};
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
@@ -900,7 +922,10 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
   return (
     <Card className="w-full shadow-lg max-w-7xl mx-auto">
       <CardHeader>
-        <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
+        <div className="flex justify-between items-baseline">
+            <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
+            {planType === 'Daily' && <TodayDate />}
+        </div>
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
