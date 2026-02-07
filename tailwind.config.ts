@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['"Noto Sans SC"', 'sans-serif'],
+        headline: ['"ZCOOL XiaoWei"', 'serif'],
         code: ['monospace'],
       },
       colors: {
