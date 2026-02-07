@@ -916,6 +916,31 @@ const TodayDate = () => {
     );
 };
 
+const WeekInfo = () => {
+    const [dateString, setDateString] = useState('');
+
+    useEffect(() => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.toLocaleString('zh-CN', { month: 'long' });
+        
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const firstDayOfWeek = firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1; // 0 for Monday, 6 for Sunday
+        const weekOfMonth = Math.ceil((today.getDate() + firstDayOfWeek) / 7);
+
+        setDateString(`${year}年 ${month} 第${weekOfMonth}周`);
+    }, []);
+
+    if (!dateString) return null;
+
+    return (
+        <span className="text-base font-normal text-muted-foreground tracking-wide">
+            {dateString}
+        </span>
+    );
+};
+
+
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType];
   
@@ -925,6 +950,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
         <div className="flex justify-between items-baseline">
             <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
             {planType === 'Daily' && <TodayDate />}
+            {planType === 'Weekly' && <WeekInfo />}
         </div>
         <CardDescription>{currentTranslation.description}</CardDescription>
       </CardHeader>
