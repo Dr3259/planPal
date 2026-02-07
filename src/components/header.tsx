@@ -10,6 +10,10 @@ type HeaderProps = {
 };
 
 export default function Header({ mode, setMode }: HeaderProps) {
+  const toggleMode = () => {
+    setMode(mode === 'work' ? 'study' : 'work');
+  };
+
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -21,20 +25,12 @@ export default function Header({ mode, setMode }: HeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={mode === 'work' ? 'default' : 'ghost'}
-            onClick={() => setMode('work')}
+            variant="ghost"
+            onClick={toggleMode}
             className={cn('gap-2')}
           >
-            <Briefcase />
-            工作模式
-          </Button>
-          <Button
-            variant={mode === 'study' ? 'default' : 'ghost'}
-            onClick={() => setMode('study')}
-            className={cn('gap-2')}
-          >
-            <BookOpen />
-            学习模式
+            {mode === 'work' ? <BookOpen /> : <Briefcase />}
+            {mode === 'work' ? '切换到学习模式' : '切换到工作模式'}
           </Button>
         </div>
       </div>
