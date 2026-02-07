@@ -118,14 +118,17 @@ type SuggestionNodeProps = {
     onDelete: (id: string) => void;
     onAddChild: (parentId: string, text: string) => void;
     addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void;
+    parentText?: string;
 };
 
-const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, addGoal }: SuggestionNodeProps) => {
+const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, addGoal, parentText }: SuggestionNodeProps) => {
     const [editing, setEditing] = useState(false);
     const [editText, setEditText] = useState(item.text);
     const [addingChild, setAddingChild] = useState(false);
     const [newChildText, setNewChildText] = useState('');
     const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const fullItemText = parentText ? `${parentText} - ${item.text}` : item.text;
 
     const handleSave = () => {
         if (editText.trim()) {
@@ -200,9 +203,9 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => addGoal('morning', item.text)}>添加到上午</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => addGoal('afternoon', item.text)}>添加到下午</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => addGoal('evening', item.text)}>添加到晚上</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => addGoal('morning', fullItemText)}>添加到上午</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => addGoal('afternoon', fullItemText)}>添加到下午</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => addGoal('evening', fullItemText)}>添加到晚上</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
 
@@ -230,6 +233,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                         onDelete={onDelete}
                         onAddChild={onAddChild}
                         addGoal={addGoal}
+                        parentText={fullItemText}
                     />
                 ))}
                 {addingChild && (
@@ -1147,3 +1151,5 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
     </Card>
   );
 }
+
+    
