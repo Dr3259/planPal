@@ -160,7 +160,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
         <div className="relative">
             <div className="flex items-center gap-2 group">
                 {editing ? (
-                    <div className="flex-1 flex items-center gap-1 py-1">
+                    <div className="flex-1 flex items-center gap-1 py-1 relative z-0">
                         <Input
                             ref={inputRef}
                             value={editText}
@@ -227,7 +227,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                     </div>
                 )}
                 <div className="absolute -left-3.5 top-0 h-full">
-                    {level > 0 && <div className={cn("absolute top-0 h-1/2 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
+                    {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
                     {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
                 </div>
             </div>
@@ -1175,7 +1175,3 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
     </Card>
   );
 }
-
-    
-
-    
