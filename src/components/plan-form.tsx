@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit, Check, X } from 'lucide-react';
+import { Plus, Trash2, Check, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +32,7 @@ const translations = {
             afternoon: '下午 (13:00 - 18:00)',
             evening: '晚上 (19:00 - 22:00)',
             suggestionsTitle: '可能的计划项',
-            suggestionsDescription: '点击“+”添加到计划中，或编辑你的常用项目。',
+            suggestionsDescription: '点击“+”添加到计划中，或双击项目进行编辑。',
             addSuggestion: '添加',
             noPlans: '暂无计划',
         },
@@ -61,7 +61,7 @@ const translations = {
             afternoon: '下午 (13:00 - 18:00)',
             evening: '晚上 (19:00 - 22:00)',
             suggestionsTitle: '可能的计划项',
-            suggestionsDescription: '点击“+”添加到计划中，或编辑你的常用项目。',
+            suggestionsDescription: '点击“+”添加到计划中，或双击项目进行编辑。',
             addSuggestion: '添加',
             noPlans: '暂无计划',
         },
@@ -168,7 +168,13 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                                 </>
                             ) : (
                                 <>
-                                    <span className="flex-1 break-words mr-2 text-sm">{suggestion}</span>
+                                    <span
+                                        onDoubleClick={() => handleStartEdit(index, suggestion)}
+                                        title="双击编辑"
+                                        className="flex-1 break-words mr-2 text-sm cursor-pointer"
+                                    >
+                                        {suggestion}
+                                    </span>
                                     <div className="flex items-center gap-0">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -182,9 +188,6 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                                                 <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleStartEdit(index, suggestion)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
                                         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
                                             <Trash2 className="h-4 w-4 text-destructive/80" />
                                         </Button>
