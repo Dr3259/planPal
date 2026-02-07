@@ -150,6 +150,11 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
         }
     };
 
+    const handleCancelAddChild = () => {
+        setNewChildText('');
+        setAddingChild(false);
+    };
+
     useEffect(() => {
         if (addingChild || editing) {
             inputRef.current?.focus();
@@ -246,8 +251,8 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                     />
                 ))}
                 {addingChild && (
-                    <div className="flex items-center gap-2 mt-1 py-1 relative">
-                        <div className="absolute -left-3.5 top-0 h-full">
+                    <div className="flex items-center gap-1 mt-1 py-1 relative z-10">
+                        <div className="absolute -left-3.5 top-0 h-full z-0">
                            <div className="absolute top-0 h-5 w-px bg-border" />
                            <div className="absolute top-4 h-px w-3.5 bg-border" />
                         </div>
@@ -256,13 +261,18 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                             placeholder="新子项..."
                             value={newChildText}
                             onChange={e => setNewChildText(e.target.value)}
-                            className="flex-1 h-8 text-sm"
+                            className="flex-1 h-8 text-sm bg-background"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddChild();
-                                if (e.key === 'Escape') setAddingChild(false);
+                                if (e.key === 'Escape') handleCancelAddChild();
                             }}
-                            onBlur={() => { if(!newChildText) setAddingChild(false); else handleAddChild(); }}
                         />
+                         <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleAddChild}>
+                            <Check className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancelAddChild}>
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
                 )}
             </div>
