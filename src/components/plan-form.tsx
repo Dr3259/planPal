@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Check, X } from 'lucide-react';
+import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 type PlanFormProps = {
   mode: 'work' | 'study';
@@ -32,24 +34,24 @@ const translations = {
             afternoon: '下午 (13:00 - 18:00)',
             evening: '晚上 (19:00 - 22:00)',
             suggestionsTitle: '可能的计划项',
-            suggestionsDescription: '点击“+”添加到计划中，或双击项目进行编辑。',
+            suggestionsDescription: '双击编辑，或添加到计划中。',
             addSuggestion: '添加',
-            noPlans: '暂无计划',
+            noPlans: '暂无计划，从右侧添加或直接创建',
         },
         'Weekly': {
             plan: '每周工作计划',
-            description: '概述你本周的工作目标。',
-            goals: '我的每周目标'
+            description: '以终为始，概述你本周的核心目标与任务。',
+            goals: '本周核心目标'
         },
         'Monthly': {
             plan: '每月工作计划',
-            description: '概述你本月的工作目标。',
-            goals: '我的每月目标'
+            description: '着眼于更大的图景，设定本月要达成的关键里程碑。',
+            goals: '本月关键目标'
         },
         'Yearly': {
             plan: '年度工作计划',
-            description: '概述你今年的工作目标。',
-            goals: '我的年度目标'
+            description: '设定你的年度愿景，将梦想分解为可实现的目标。',
+            goals: '年度愿景与目标'
         }
     },
     study: {
@@ -61,24 +63,24 @@ const translations = {
             afternoon: '下午 (13:00 - 18:00)',
             evening: '晚上 (19:00 - 22:00)',
             suggestionsTitle: '可能的计划项',
-            suggestionsDescription: '点击“+”添加到计划中，或双击项目进行编辑。',
+            suggestionsDescription: '双击编辑，或添加到计划中。',
             addSuggestion: '添加',
-            noPlans: '暂无计划',
+            noPlans: '暂无计划，从右侧添加或直接创建',
         },
         'Weekly': {
             plan: '每周学习计划',
-            description: '概述你本周的学习目标。',
-            goals: '我的每周目标'
+            description: '总结本周学习重点，明确需要攻克的难题。',
+            goals: '本周学习重点'
         },
         'Monthly': {
             plan: '每月学习计划',
-            description: '概述你本月的学习目标。',
-            goals: '我的每月目标'
+            description: '规划本月的学习蓝图，挑战一个新领域或完成一门课程。',
+            goals: '本月学习蓝图'
         },
         'Yearly': {
             plan: '年度学习计划',
-            description: '概述你今年的学习目标。',
-            goals: '我的年度目标'
+            description: '设定年度学习目标，无论是掌握新技能还是达成重要考试。',
+            goals: '年度学习目标'
         }
     }
 };
@@ -88,7 +90,7 @@ const defaultSuggestions = {
     study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记']
 };
 
-const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
+const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal, onToggle }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void, onToggle?: () => void }) => {
     const [newSuggestion, setNewSuggestion] = useState('');
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingText, setEditingText] = useState('');
@@ -125,10 +127,28 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
     };
 
     return (
-        <div className="bg-muted/40 rounded-lg p-4 h-full">
-            <div className="mb-4">
-                <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
-                <p className="text-sm text-muted-foreground">{dailyTranslations.suggestionsDescription}</p>
+        <div className="rounded-lg h-full">
+            <div className="mb-4 flex items-start justify-between">
+                <div>
+                    <h3 className="font-semibold text-lg">{dailyTranslations.suggestionsTitle}</h3>
+                    <p className="text-sm text-muted-foreground">{dailyTranslations.suggestionsDescription}</p>
+                </div>
+                {onToggle && (
+                    <div className="hidden lg:block">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="-mr-2 -mt-1" onClick={onToggle}>
+                                        <PanelRightClose className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>隐藏建议项</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
             </div>
             
             <div className="flex gap-2 mb-4">
@@ -144,7 +164,7 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
             <ScrollArea className="h-80">
                 <div className="space-y-2 pr-4">
                     {suggestions.map((suggestion, index) => (
-                        <div key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm min-h-[46px]">
+                        <Card key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm min-h-[46px]">
                            {editingIndex === index ? (
                                 <>
                                     <Input
@@ -194,7 +214,7 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                                     </div>
                                 </>
                             )}
-                        </div>
+                        </Card>
                     ))}
                 </div>
             </ScrollArea>
@@ -211,6 +231,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     const [goals, setGoals] = useState<{ morning: string[], afternoon: string[], evening: string[] }>({ morning: [], afternoon: [], evening: [] });
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     useEffect(() => {
         const savedGoals = localStorage.getItem(goalsStorageKey);
@@ -273,16 +294,18 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 <h3 className="text-lg font-semibold text-foreground">{title}</h3>
                 <Badge variant="secondary">{goals[period].length}</Badge>
             </div>
-            <div className="rounded-lg bg-muted/40 p-3 min-h-[6rem] flex flex-wrap gap-2">
+            <div className="rounded-lg bg-muted/40 p-4 min-h-[8rem]">
                 {goals[period].length > 0 ? (
-                    goals[period].map((item, index) => (
-                        <div key={index} className="group flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-background shadow-sm">
-                            <span className="text-card-foreground break-words">{item}</span>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
-                                <Trash2 className="h-4 w-4 text-destructive/80" />
-                            </Button>
-                        </div>
-                    ))
+                    <div className="flex flex-wrap gap-2">
+                        {goals[period].map((item, index) => (
+                            <Card key={index} className="group flex items-center gap-1 pl-3 pr-1 py-1 rounded-md bg-background shadow-sm">
+                                <span className="text-card-foreground break-words">{item}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeGoal(period, index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                                </Button>
+                            </Card>
+                        ))}
+                    </div>
                 ) : (
                     <div className="flex items-center justify-center w-full h-full pt-4">
                         <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
@@ -293,22 +316,45 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-2 space-y-6">
-                {renderPeriodPlans('morning', dailyTranslations.morning)}
-                {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
-                {renderPeriodPlans('evening', dailyTranslations.evening)}
+        <div className="relative">
+             <div className="absolute top-0 right-0 hidden lg:block">
+                {!isSidebarOpen && (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => setIsSidebarOpen(true)}
+                                >
+                                    <PanelLeftOpen className="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>显示建议项</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </div>
-            <div className="h-full">
-                <SuggestedItems
-                    mode={mode}
-                    suggestions={suggestions}
-                    setSuggestions={setSuggestions}
-                    addGoal={addGoal}
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className={`${isSidebarOpen ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-6`}>
+                    {renderPeriodPlans('morning', dailyTranslations.morning)}
+                    {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
+                    {renderPeriodPlans('evening', dailyTranslations.evening)}
+                </div>
+                <div className={`h-full ${isSidebarOpen ? 'block' : 'lg:hidden'}`}>
+                    <SuggestedItems
+                        mode={mode}
+                        suggestions={suggestions}
+                        setSuggestions={setSuggestions}
+                        addGoal={addGoal}
+                        onToggle={() => setIsSidebarOpen(false)}
+                    />
+                </div>
             </div>
         </div>
-    )
+    );
 }
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
