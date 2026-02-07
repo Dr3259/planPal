@@ -308,7 +308,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                              const color = noteColors[Math.abs(hash) % noteColors.length];
                              return (
                                  <div key={index} className={cn(
-                                     "group relative p-4 rounded-lg shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border",
+                                     "group relative p-4 shadow-sm w-36 h-36 flex items-center justify-center text-center transition-all duration-200 hover:shadow-md hover:-rotate-3 hover:scale-105 border",
                                      color.bg, color.text, color.border
                                  )}>
                                 <p className="text-sm font-medium break-words">{item}</p>
@@ -319,7 +319,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                         )})}
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center border-2 border-dashed rounded-lg w-full min-h-[10rem]">
+                    <div className="flex items-center justify-center border-2 border-dashed w-full min-h-[10rem]">
                         <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
                     </div>
                 )}
