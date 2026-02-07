@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Check, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,6 +90,8 @@ const defaultSuggestions = {
 
 const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
     const [newSuggestion, setNewSuggestion] = useState('');
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editingText, setEditingText] = useState('');
     const dailyTranslations = translations[mode]['Daily'];
 
     const handleAddSuggestion = () => {
@@ -101,6 +103,25 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
 
     const handleRemoveSuggestion = (indexToRemove: number) => {
         setSuggestions(suggestions.filter((_, index) => index !== indexToRemove));
+    };
+
+    const handleStartEdit = (index: number, text: string) => {
+        setEditingIndex(index);
+        setEditingText(text);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingIndex(null);
+        setEditingText('');
+    };
+
+    const handleSaveEdit = (index: number) => {
+        if (editingText.trim()) {
+            const updatedSuggestions = [...suggestions];
+            updatedSuggestions[index] = editingText.trim();
+            setSuggestions(updatedSuggestions);
+        }
+        handleCancelEdit();
     };
 
     return (
@@ -123,25 +144,53 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
             <ScrollArea className="h-80">
                 <div className="space-y-2 pr-4">
                     {suggestions.map((suggestion, index) => (
-                        <div key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm">
-                            <span className="flex-1 break-words mr-2 text-sm">{suggestion}</span>
-                            <div className="flex items-center gap-0">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                            <Plus className="h-4 w-4" />
+                        <div key={index} className="flex items-center justify-between p-2.5 rounded-md bg-background shadow-sm min-h-[46px]">
+                           {editingIndex === index ? (
+                                <>
+                                    <Input
+                                        value={editingText}
+                                        onChange={(e) => setEditingText(e.target.value)}
+                                        className="flex-1 mr-2 h-7 text-sm"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveEdit(index);
+                                            if (e.key === 'Escape') handleCancelEdit();
+                                        }}
+                                    />
+                                    <div className="flex items-center gap-0">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleSaveEdit(index)}>
+                                            <Check className="h-4 w-4 text-green-600" />
                                         </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive/80" />
-                                </Button>
-                            </div>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancelEdit}>
+                                            <X className="h-4 w-4 text-destructive/80" />
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="flex-1 break-words mr-2 text-sm">{suggestion}</span>
+                                    <div className="flex items-center gap-0">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleStartEdit(index, suggestion)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
+                                            <Trash2 className="h-4 w-4 text-destructive/80" />
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ))}
                 </div>
