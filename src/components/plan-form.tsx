@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen } from 'lucide-react';
+import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen, PlusCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,7 +89,7 @@ const translations = {
     }
 };
 
-const defaultSuggestions = {
+const defaultSuggestionsRaw = {
     work: ['完成最重要的任务', '回复重要邮件', '参加团队会议', '项目进度跟进', '准备报告'],
     study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记']
 };
@@ -104,42 +104,247 @@ const noteColors = [
     { bg: 'bg-fuchsia-100/60', text: 'text-fuchsia-800' },
 ];
 
-const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 'work' | 'study', suggestions: string[], setSuggestions: (suggestions: string[]) => void, addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
-    const [newSuggestion, setNewSuggestion] = useState('');
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [editingText, setEditingText] = useState('');
-    const dailyTranslations = translations[mode]['Daily'];
+type SuggestionItem = {
+    id: string;
+    text: string;
+    children: SuggestionItem[];
+};
 
-    const handleAddSuggestion = () => {
-        if (newSuggestion.trim() && !suggestions.includes(newSuggestion.trim())) {
-            setSuggestions([...suggestions, newSuggestion.trim()]);
+type SuggestionNodeProps = {
+    item: SuggestionItem;
+    level: number;
+    isLast: boolean;
+    onUpdate: (id: string, text: string) => void;
+    onDelete: (id: string) => void;
+    onAddChild: (parentId: string, text: string) => void;
+    addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void;
+};
+
+const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, addGoal }: SuggestionNodeProps) => {
+    const [editing, setEditing] = useState(false);
+    const [editText, setEditText] = useState(item.text);
+    const [addingChild, setAddingChild] = useState(false);
+    const [newChildText, setNewChildText] = useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleSave = () => {
+        if (editText.trim()) {
+            onUpdate(item.id, editText.trim());
+        }
+        setEditing(false);
+    };
+
+    const handleAddChild = () => {
+        if (newChildText.trim()) {
+            onAddChild(item.id, newChildText.trim());
+            setNewChildText('');
+            setAddingChild(false);
+        }
+    };
+
+    useEffect(() => {
+        if (addingChild || editing) {
+            inputRef.current?.focus();
+        }
+    }, [addingChild, editing]);
+
+    return (
+        <div className="relative">
+            <div className="flex items-center gap-2 group">
+                 <div className="absolute -left-3.5 top-0 h-full">
+                    {level > 0 && <div className={cn("absolute top-0 h-1/2 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
+                    {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
+                </div>
+
+                {editing ? (
+                    <div className="flex-1 flex items-center gap-2 py-1">
+                        <Input
+                            ref={inputRef}
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="flex-1 h-8 text-sm bg-background"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSave();
+                                if (e.key === 'Escape') setEditing(false);
+                            }}
+                            onBlur={handleSave}
+                        />
+                    </div>
+                ) : (
+                    <div 
+                        onDoubleClick={() => { setEditText(item.text); setEditing(true); }}
+                        title="双击编辑"
+                        className="flex-1 flex items-center min-h-[38px] cursor-pointer py-1 text-sm break-words"
+                    >
+                        {item.text}
+                    </div>
+                )}
+                
+                {!editing && (
+                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setAddingChild(true)}>
+                                        <PlusCircle className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>添加子项</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onClick={() => addGoal('morning', item.text)}>添加到上午</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => addGoal('afternoon', item.text)}>添加到下午</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => addGoal('evening', item.text)}>添加到晚上</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => onDelete(item.id)}>
+                                        <Trash2 className="h-4 w-4 text-destructive/80" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>删除此项</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
+            </div>
+            <div className={cn("pl-5 flex flex-col")}>
+                 {item.children.map((child, index) => (
+                    <SuggestionNode
+                        key={child.id}
+                        item={child}
+                        level={level + 1}
+                        isLast={index === item.children.length - 1}
+                        onUpdate={onUpdate}
+                        onDelete={onDelete}
+                        onAddChild={onAddChild}
+                        addGoal={addGoal}
+                    />
+                ))}
+                {addingChild && (
+                    <div className="flex items-center gap-2 mt-1 py-1">
+                        <div className="absolute -left-3.5 top-0 h-full">
+                           <div className="absolute top-0 h-5 w-px bg-border" />
+                           <div className="absolute top-4 h-px w-3.5 bg-border" />
+                        </div>
+                        <Input
+                            ref={inputRef}
+                            placeholder="新子项..."
+                            value={newChildText}
+                            onChange={e => setNewChildText(e.target.value)}
+                            className="flex-1 h-8 text-sm"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddChild();
+                                if (e.key === 'Escape') setAddingChild(false);
+                            }}
+                            onBlur={() => { if(!newChildText) setAddingChild(false); else handleAddChild(); }}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
+    const dailyTranslations = translations[mode]['Daily'];
+    const suggestionsStorageKey = `plan-app-data-${mode}-Daily-suggestions-tree`;
+
+    const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+    const [newSuggestion, setNewSuggestion] = useState('');
+    const [isLoaded, setIsLoaded] = useState(false);
+    
+    const updateItemInTree = (items: SuggestionItem[], id: string, text: string): SuggestionItem[] => {
+        return items.map(item => {
+            if (item.id === id) return { ...item, text };
+            if (item.children) return { ...item, children: updateItemInTree(item.children, id, text) };
+            return item;
+        });
+    };
+
+    const deleteItemFromTree = (items: SuggestionItem[], id: string): SuggestionItem[] => {
+        return items.filter(item => item.id !== id).map(item => {
+            if (item.children) return { ...item, children: deleteItemFromTree(item.children, id) };
+            return item;
+        });
+    };
+
+    const addChildToTree = (items: SuggestionItem[], parentId: string, child: SuggestionItem): SuggestionItem[] => {
+        return items.map(item => {
+            if (item.id === parentId) return { ...item, children: [...item.children, child] };
+            if (item.children) return { ...item, children: addChildToTree(item.children, parentId, child) };
+            return item;
+        });
+    };
+    
+    useEffect(() => {
+        const savedSuggestions = localStorage.getItem(suggestionsStorageKey);
+        if (savedSuggestions) {
+            try {
+                const parsed = JSON.parse(savedSuggestions);
+                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                    setSuggestions(parsed);
+                } else if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+                    // Migrate from old string array format
+                    const migrated = parsed.map((text: string) => ({ id: crypto.randomUUID(), text, children: [] }));
+                    setSuggestions(migrated);
+                } else {
+                    throw new Error("Invalid format");
+                }
+            } catch (e) {
+                console.error("Failed to parse suggestions, falling back to default", e);
+                const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ id: crypto.randomUUID(), text, children: [] }));
+                setSuggestions(defaultItems);
+            }
+        } else {
+            const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ id: crypto.randomUUID(), text, children: [] }));
+            setSuggestions(defaultItems);
+        }
+        setIsLoaded(true);
+    }, [mode, suggestionsStorageKey]);
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        localStorage.setItem(suggestionsStorageKey, JSON.stringify(suggestions));
+    }, [suggestions, suggestionsStorageKey, isLoaded]);
+
+    const handleAddRootSuggestion = () => {
+        if (newSuggestion.trim()) {
+            const newItem: SuggestionItem = {
+                id: crypto.randomUUID(),
+                text: newSuggestion.trim(),
+                children: [],
+            };
+            setSuggestions(prev => [...prev, newItem]);
             setNewSuggestion('');
         }
     };
-
-    const handleRemoveSuggestion = (indexToRemove: number) => {
-        setSuggestions(suggestions.filter((_, index) => index !== indexToRemove));
+    
+    const handleUpdate = (id: string, text: string) => {
+        setSuggestions(prev => updateItemInTree(prev, id, text));
     };
 
-    const handleStartEdit = (index: number, text: string) => {
-        setEditingIndex(index);
-        setEditingText(text);
+    const handleDelete = (id: string) => {
+        setSuggestions(prev => deleteItemFromTree(prev, id));
     };
 
-    const handleCancelEdit = () => {
-        setEditingIndex(null);
-        setEditingText('');
+    const handleAddChild = (parentId: string, text: string) => {
+        const newChild: SuggestionItem = { id: crypto.randomUUID(), text, children: [] };
+        setSuggestions(prev => addChildToTree(prev, parentId, newChild));
     };
-
-    const handleSaveEdit = (index: number) => {
-        if (editingText.trim()) {
-            const updatedSuggestions = [...suggestions];
-            updatedSuggestions[index] = editingText.trim();
-            setSuggestions(updatedSuggestions);
-        }
-        handleCancelEdit();
-    };
-
+    
     return (
         <div className="h-full">
             <div className="mb-4 flex items-start justify-between">
@@ -154,65 +359,24 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                     value={newSuggestion}
                     onChange={(e) => setNewSuggestion(e.target.value)}
                     placeholder="添加新的常用计划..."
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddSuggestion()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddRootSuggestion()}
                     className="bg-background"
                 />
-                <Button onClick={handleAddSuggestion} size="sm">{dailyTranslations.addSuggestion}</Button>
+                <Button onClick={handleAddRootSuggestion} size="sm">{dailyTranslations.addSuggestion}</Button>
             </div>
-            <ScrollArea className="h-80">
-                <div className="space-y-2 pr-4">
-                    {suggestions.map((suggestion, index) => (
-                        <Card key={index} className="flex items-center justify-between p-2.5 bg-background shadow-sm min-h-[46px]">
-                           {editingIndex === index ? (
-                                <>
-                                    <Input
-                                        value={editingText}
-                                        onChange={(e) => setEditingText(e.target.value)}
-                                        className="flex-1 mr-2 h-7 text-sm"
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveEdit(index);
-                                            if (e.key === 'Escape') handleCancelEdit();
-                                        }}
-                                    />
-                                    <div className="flex items-center gap-0">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleSaveEdit(index)}>
-                                            <Check className="h-4 w-4 text-green-600" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCancelEdit}>
-                                            <X className="h-4 w-4 text-destructive/80" />
-                                        </Button>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <span
-                                        onDoubleClick={() => handleStartEdit(index, suggestion)}
-                                        title="双击编辑"
-                                        className="flex-1 break-words mr-2 text-sm cursor-pointer"
-                                    >
-                                        {suggestion}
-                                    </span>
-                                    <div className="flex items-center gap-0">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveSuggestion(index)}>
-                                            <Trash2 className="h-4 w-4 text-destructive/80" />
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
-                        </Card>
+            <ScrollArea className="h-[calc(100vh-28rem)]">
+                <div className="space-y-1 pr-2">
+                   {suggestions.map((item, index) => (
+                        <SuggestionNode
+                            key={item.id}
+                            item={item}
+                            level={0}
+                            isLast={index === suggestions.length - 1}
+                            onUpdate={handleUpdate}
+                            onDelete={handleDelete}
+                            onAddChild={handleAddChild}
+                            addGoal={addGoal}
+                        />
                     ))}
                 </div>
             </ScrollArea>
@@ -224,10 +388,8 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
 const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     const dailyTranslations = translations[mode]['Daily'];
     const goalsStorageKey = `plan-app-data-${mode}-Daily-goals`;
-    const suggestionsStorageKey = `plan-app-data-${mode}-Daily-suggestions`;
     
     const [goals, setGoals] = useState<{ morning: string[], afternoon: string[], evening: string[] }>({ morning: [], afternoon: [], evening: [] });
-    const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -254,32 +416,13 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 console.error("Failed to parse daily goals from localStorage", e);
             }
         }
-
-        const savedSuggestions = localStorage.getItem(suggestionsStorageKey);
-        if (savedSuggestions) {
-            try {
-                const parsedSuggestions = JSON.parse(savedSuggestions);
-                if (Array.isArray(parsedSuggestions)) {
-                    setSuggestions(parsedSuggestions);
-                }
-            } catch (e) {
-                console.error("Failed to parse suggestions from localStorage", e);
-            }
-        } else {
-            setSuggestions(defaultSuggestions[mode]);
-        }
         setIsLoaded(true);
-    }, [mode, goalsStorageKey, suggestionsStorageKey]);
+    }, [mode, goalsStorageKey]);
 
     useEffect(() => {
         if (!isLoaded) return;
         localStorage.setItem(goalsStorageKey, JSON.stringify(goals));
     }, [goals, goalsStorageKey, isLoaded]);
-
-    useEffect(() => {
-        if (!isLoaded) return;
-        localStorage.setItem(suggestionsStorageKey, JSON.stringify(suggestions));
-    }, [suggestions, suggestionsStorageKey, isLoaded]);
     
     const addGoal = (period: 'morning' | 'afternoon' | 'evening', item: string) => {
         setGoals(prev => {
@@ -359,8 +502,6 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
                 <div className={`h-full ${isSidebarOpen ? 'block' : 'lg:hidden'}`}>
                     <SuggestedItems
                         mode={mode}
-                        suggestions={suggestions}
-                        setSuggestions={setSuggestions}
                         addGoal={addGoal}
                     />
                 </div>
