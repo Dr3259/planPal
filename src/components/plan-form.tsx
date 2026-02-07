@@ -20,6 +20,7 @@ import {
     AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type PlanFormProps = {
   mode: 'work' | 'study';
@@ -124,30 +125,32 @@ const SuggestedItems = ({ mode, suggestions, setSuggestions, addGoal }: { mode: 
                     />
                     <Button onClick={handleAddSuggestion}>{dailyTranslations.addSuggestion}</Button>
                 </div>
-                <div className="space-y-2">
-                    {suggestions.map((suggestion, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                            <span className="flex-1 break-words">{suggestion}</span>
-                            <div className="flex items-center gap-1 pl-2">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveSuggestion(index)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                <ScrollArea className="h-72">
+                    <div className="space-y-2 pr-4">
+                        {suggestions.map((suggestion, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                                <span className="flex-1 break-words">{suggestion}</span>
+                                <div className="flex items-center gap-1 pl-2">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem onClick={() => addGoal('morning', suggestion)}>添加到上午</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => addGoal('afternoon', suggestion)}>添加到下午</DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => addGoal('evening', suggestion)}>添加到晚上</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveSuggestion(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                </ScrollArea>
             </CardContent>
         </Card>
     );
@@ -246,12 +249,14 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     );
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Accordion key={String(isLoaded)} type="multiple" className="w-full" defaultValue={defaultOpenValues}>
-                {renderPeriodPlans('morning', dailyTranslations.morning)}
-                {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
-                {renderPeriodPlans('evening', dailyTranslations.evening)}
-            </Accordion>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+                <Accordion key={String(isLoaded)} type="multiple" className="w-full" defaultValue={defaultOpenValues}>
+                    {renderPeriodPlans('morning', dailyTranslations.morning)}
+                    {renderPeriodPlans('afternoon', dailyTranslations.afternoon)}
+                    {renderPeriodPlans('evening', dailyTranslations.evening)}
+                </Accordion>
+            </div>
             <div>
                 <SuggestedItems
                     mode={mode}
