@@ -5,7 +5,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import { LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut, Settings } from 'lucide-react';
 import { useAuth, useUser } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,10 @@ export default function UserButton() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>个人设置</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>退出登录</span>
