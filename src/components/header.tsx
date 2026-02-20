@@ -1,6 +1,6 @@
 'use client';
 
-import { ListTodo, Briefcase, BookOpen, ChevronDown } from 'lucide-react';
+import { ListTodo, Briefcase, BookOpen, ChevronDown, Home, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,13 +9,23 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UserButton from './auth/user-button';
+import React from 'react';
+
+type Mode = 'work' | 'study' | 'life' | 'travel';
 
 type HeaderProps = {
-  mode: 'work' | 'study';
-  setMode: (mode: 'work' | 'study') => void;
+  mode: Mode;
+  setMode: (mode: Mode) => void;
 };
 
 export default function Header({ mode, setMode }: HeaderProps) {
+    const modeConfig: Record<Mode, { icon: React.ReactNode; text: string }> = {
+    work: { icon: <Briefcase />, text: '工作模式' },
+    study: { icon: <BookOpen />, text: '学习模式' },
+    life: { icon: <Home />, text: '生活模式' },
+    travel: { icon: <Plane />, text: '旅游模式' },
+  };
+
   return (
     <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -28,18 +38,9 @@ export default function Header({ mode, setMode }: HeaderProps) {
         <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 w-[180px]">
-                {mode === 'work' ? (
-                  <>
-                    <Briefcase className="mr-2" />
-                    <span>工作模式</span>
-                  </>
-                ) : (
-                  <>
-                    <BookOpen className="mr-2" />
-                    <span>学习模式</span>
-                  </>
-                )}
+              <Button variant="ghost" className="gap-2 w-[180px] justify-center">
+                {modeConfig[mode].icon}
+                <span>{modeConfig[mode].text}</span>
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -51,6 +52,14 @@ export default function Header({ mode, setMode }: HeaderProps) {
               <DropdownMenuItem onClick={() => setMode('study')} className="gap-2">
                 <BookOpen />
                 <span>学习模式</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('life')} className="gap-2">
+                <Home />
+                <span>生活模式</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('travel')} className="gap-2">
+                <Plane />
+                <span>旅游模式</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -26,7 +26,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 type PlanFormProps = {
-  mode: 'work' | 'study';
+  mode: 'work' | 'study' | 'life' | 'travel';
   planType: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
   placeholder: string;
 };
@@ -89,12 +89,72 @@ const translations = {
             description: '设定年度学习目标，无论是掌握新技能还是达成重要考试。',
             goals: '年度学习目标'
         }
+    },
+    life: {
+        'Daily': {
+            plan: '每日生活计划',
+            description: '从右侧选择或添加你的生活琐事，让生活井井有条。',
+            goals: '我的每日目标',
+            morning: '上午 (8:00 - 12:00)',
+            afternoon: '下午 (13:00 - 18:00)',
+            evening: '晚上 (19:00 - 22:00)',
+            suggestionsTitle: '可能的生活项',
+            suggestionsDescription: '双击编辑，或添加到计划中。',
+            addSuggestion: '添加',
+            noPlans: '暂无计划，从右侧添加或直接创建',
+        },
+        'Weekly': {
+            plan: '每周生活计划',
+            description: '规划你本周的生活重点，如家庭、健康和社交。',
+            goals: '本周生活重点'
+        },
+        'Monthly': {
+            plan: '每月生活计划',
+            description: '设定本月的生活目标，平衡工作与生活的艺术。',
+            goals: '本月生活目标'
+        },
+        'Yearly': {
+            plan: '年度生活计划',
+            description: '展望你的年度生活愿景，实现个人成长与家庭幸福。',
+            goals: '年度生活愿景'
+        }
+    },
+    travel: {
+        'Daily': {
+            plan: '每日旅行计划',
+            description: '从右侧选择或添加你的行程，享受每一天的旅程。',
+            goals: '我的每日行程',
+            morning: '上午 (9:00 - 12:00)',
+            afternoon: '下午 (13:00 - 18:00)',
+            evening: '晚上 (19:00 - 23:00)',
+            suggestionsTitle: '可能的旅行项',
+            suggestionsDescription: '双击编辑，或添加到计划中。',
+            addSuggestion: '添加',
+            noPlans: '暂无计划，从右侧添加或直接创建',
+        },
+        'Weekly': {
+            plan: '每周旅行计划',
+            description: '规划整周的旅行路线和活动，深度探索目的地。',
+            goals: '本周旅行重点'
+        },
+        'Monthly': {
+            plan: '每月旅行计划',
+            description: '为长途旅行或深度游制定月度计划。',
+            goals: '本月旅行蓝图'
+        },
+        'Yearly': {
+            plan: '年度旅行计划',
+            description: '设定年度旅行目标，探索世界的不同角落。',
+            goals: '年度旅行目标'
+        }
     }
 };
 
 const defaultSuggestionsRaw = {
     work: ['完成最重要的任务', '回复重要邮件', '参加团队会议', '项目进度跟进', '准备报告'],
-    study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记']
+    study: ['复习高数', '背50个单词', '完成编程作业', '预习新章节', '整理课堂笔记'],
+    life: ['打扫卫生', '采购生活用品', '锻炼身体', '与家人联系', '阅读'],
+    travel: ['预定酒店和机票', '打包行李', '研究目的地', '参观博物馆', '品尝当地小吃']
 };
 
 const noteColors = [
@@ -284,7 +344,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 };
 
 
-const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
+const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | 'travel', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
     const { user, loading: userLoading } = useUser();
     let firestore;
     try {
@@ -447,7 +507,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (p
 };
 
 
-const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
+const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
     let firestore;
     try {
@@ -611,7 +671,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const timePeriods = ['morning', 'afternoon', 'evening'];
 
-const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
     let firestore;
     try {
@@ -638,6 +698,24 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
           evening: '晚上',
         },
         addPrompt: '添加新计划...'
+      },
+      life: {
+        days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        periods: {
+          morning: '上午',
+          afternoon: '下午',
+          evening: '晚上',
+        },
+        addPrompt: '添加新计划...'
+      },
+      travel: {
+        days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+        periods: {
+          morning: '上午',
+          afternoon: '下午',
+          evening: '晚上',
+        },
+        addPrompt: '添加新行程...'
       }
     };
   
@@ -816,7 +894,7 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 
 const weekKeys = ['week1', 'week2', 'week3', 'week4', 'week5'];
 
-const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
     let firestore;
     try {
@@ -837,7 +915,19 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
         weekLabels: ["第一周", "第二周", "第三周", "第四周", "第五周"],
         addPrompt: "添加本周学习重点...",
         emptyWeek: "本周暂无学习重点",
-      }
+      },
+      life: {
+        title: "本月生活里程碑",
+        weekLabels: ["第一周", "第二周", "第三周", "第四周", "第五周"],
+        addPrompt: "添加本周生活要事...",
+        emptyWeek: "本周暂无生活要事",
+    },
+    travel: {
+        title: "本月旅行蓝图",
+        weekLabels: ["第一周", "第二周", "第三周", "第四周", "第五周"],
+        addPrompt: "添加本周旅行重点...",
+        emptyWeek: "本周暂无旅行重点",
+    }
     };
 
     const t = monthlyTranslations[mode];
@@ -1022,7 +1112,7 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 
 const quarterKeys = ['q1', 'q2', 'q3', 'q4'];
 
-const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
     let firestore;
     try {
@@ -1043,7 +1133,19 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
         quarterLabels: ["第一季度 (1月-3月)", "第二季度 (4月-6月)", "第三季度 (7月-9月)", "第四季度 (10月-12月)"],
         addPrompt: "添加本季度学习目标...",
         emptyQuarter: "本季度暂无学习目标",
-      }
+      },
+      life: {
+        title: "年度生活里程碑",
+        quarterLabels: ["第一季度 (1月-3月)", "第二季度 (4月-6月)", "第三季度 (7月-9月)", "第四季度 (10月-12月)"],
+        addPrompt: "添加本季度生活目标...",
+        emptyQuarter: "本季度暂无生活目标",
+    },
+    travel: {
+        title: "年度旅行地图",
+        quarterLabels: ["第一季度 (1月-3月)", "第二季度 (4月-6月)", "第三季度 (7月-9月)", "第四季度 (10月-12月)"],
+        addPrompt: "添加本季度旅行目标...",
+        emptyQuarter: "本季度暂无旅行目标",
+    }
     };
 
     const t = yearlyTranslations[mode];

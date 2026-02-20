@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, ChevronsRight, Milestone, Star } from 'lucide-react';
 
 export default function Home() {
-  const [mode, setMode] = useState<'work' | 'study'>('work');
+  const [mode, setMode] = useState<'work' | 'study' | 'life' | 'travel'>('work');
 
   const plansConfig = {
     work: [
@@ -68,6 +68,66 @@ export default function Home() {
         icon: <Star className="w-5 h-5 mr-2" />,
         planType: 'Yearly' as const,
         placeholder: '例如：通过一门重要考试，掌握一门新技能，发表一篇论文。',
+      },
+    ],
+    life: [
+      {
+        value: 'daily',
+        label: '每日',
+        icon: <Calendar className="w-5 h-5 mr-2" />,
+        planType: 'Daily' as const,
+        placeholder: '例如：打扫房间，采购生活用品，给家人打电话。',
+      },
+      {
+        value: 'weekly',
+        label: '每周',
+        icon: <ChevronsRight className="w-5 h-5 mr-2" />,
+        planType: 'Weekly' as const,
+        placeholder: '例如：进行一次大扫除，处理生活账单，和朋友聚会。',
+      },
+      {
+        value: 'monthly',
+        label: '每月',
+        icon: <Milestone className="w-5 h-5 mr-2" />,
+        planType: 'Monthly' as const,
+        placeholder: '例如：检查家电，整理衣柜，制定下月预算。',
+      },
+      {
+        value: 'yearly',
+        label: '年度',
+        icon: <Star className="w-5 h-5 mr-2" />,
+        planType: 'Yearly' as const,
+        placeholder: '例如：完成一次家庭装修，进行年度体检，培养一个新的生活习惯。',
+      },
+    ],
+    travel: [
+      {
+        value: 'daily',
+        label: '每日',
+        icon: <Calendar className="w-5 h-5 mr-2" />,
+        planType: 'Daily' as const,
+        placeholder: '例如：参观一个景点，品尝当地美食，写旅行日记。',
+      },
+      {
+        value: 'weekly',
+        label: '每周',
+        icon: <ChevronsRight className="w-5 h-5 mr-2" />,
+        planType: 'Weekly' as const,
+        placeholder: '例如：探索一个城市，学习几句当地语言，整理旅行照片。',
+      },
+      {
+        value: 'monthly',
+        label: '每月',
+        icon: <Milestone className="w-5 h-5 mr-2" />,
+        planType: 'Monthly' as const,
+        placeholder: '例如：完成一次长途旅行，深度体验一种文化，制作旅行视频。',
+      },
+      {
+        value: 'yearly',
+        label: '年度',
+        icon: <Star className="w-5 h-5 mr-2" />,
+        planType: 'Yearly' as const,
+        placeholder: '例如：去一个新的国家，挑战一项极限运动，完成一次环球旅行的一部分。',
       },
     ],
   };
