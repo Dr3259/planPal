@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import UserButton from './auth/user-button';
 
 type HeaderProps = {
   mode: 'work' | 'study';
@@ -24,7 +25,7 @@ export default function Header({ mode, setMode }: HeaderProps) {
           </div>
           <h1 className="ml-3 text-2xl font-headline font-bold text-foreground">计划宝</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 w-[180px] justify-start">
@@ -53,6 +54,7 @@ export default function Header({ mode, setMode }: HeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <UserButton />
         </div>
       </div>
     </header>

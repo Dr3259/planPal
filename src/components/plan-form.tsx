@@ -21,6 +21,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import React from 'react';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 type PlanFormProps = {
@@ -164,6 +166,10 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 
     return (
         <div className="relative">
+            <div className="absolute -left-3.5 top-0 h-full z-0">
+                {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
+                {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
+            </div>
             <div className="flex items-center gap-2 group">
                 {editing ? (
                     <div className="flex-1 flex items-center gap-1 py-1 relative z-10">
@@ -232,10 +238,6 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                         </TooltipProvider>
                     </div>
                 )}
-                <div className="absolute -left-3.5 top-0 h-full z-0">
-                    {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
-                    {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
-                </div>
             </div>
             <div className={cn("pl-5 flex flex-col")}>
                  {item.children.map((child, index) => (
@@ -283,8 +285,17 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 
 
 const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+      firestore = useFirestore();
+    } catch(e) {
+      // Firebase not initialized on server
+    }
     const dailyTranslations = translations[mode]['Daily'];
-    const suggestionsStorageKey = `plan-app-data-${mode}-Daily-suggestions-tree`;
+
+    const storageKey = `plan-app-data-${mode}-Daily-suggestions-tree`;
+    const firestoreKey = `${mode}_Daily_suggestions_tree`;
 
     const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
     const [newSuggestion, setNewSuggestion] = useState('');
@@ -314,35 +325,62 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (p
     };
     
     useEffect(() => {
-        const savedSuggestions = localStorage.getItem(suggestionsStorageKey);
-        if (savedSuggestions) {
-            try {
-                const parsed = JSON.parse(savedSuggestions);
-                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-                    setSuggestions(parsed);
-                } else if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-                    // Migrate from old string array format
-                    const migrated = parsed.map((text: string) => ({ id: crypto.randomUUID(), text, children: [] }));
-                    setSuggestions(migrated);
-                } else {
-                    throw new Error("Invalid format");
+        if (userLoading) return;
+
+        const loadData = async () => {
+            let loadedData = null;
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey];
                 }
-            } catch (e) {
-                console.error("Failed to parse suggestions, falling back to default", e);
+            } else {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    try {
+                        loadedData = JSON.parse(saved);
+                    } catch (e) {
+                        console.error("Failed to parse suggestions from localStorage", e);
+                    }
+                }
+            }
+
+            if (Array.isArray(loadedData) && loadedData.length > 0) {
+                 if (typeof loadedData[0] === 'object') {
+                    setSuggestions(loadedData);
+                } else if (typeof loadedData[0] === 'string') {
+                    // Migrate from old string array format
+                    const migrated = loadedData.map((text: string) => ({ id: crypto.randomUUID(), text, children: [] }));
+                    setSuggestions(migrated);
+                }
+            } else {
                 const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ id: crypto.randomUUID(), text, children: [] }));
                 setSuggestions(defaultItems);
             }
-        } else {
-            const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ id: crypto.randomUUID(), text, children: [] }));
-            setSuggestions(defaultItems);
-        }
-        setIsLoaded(true);
-    }, [mode, suggestionsStorageKey]);
+            setIsLoaded(true);
+        };
+
+        loadData();
+    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded) return;
-        localStorage.setItem(suggestionsStorageKey, JSON.stringify(suggestions));
-    }, [suggestions, suggestionsStorageKey, isLoaded]);
+        if (!isLoaded || userLoading) return;
+
+        const saveData = async () => {
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                try {
+                    await setDoc(docRef, { [firestoreKey]: suggestions }, { merge: true });
+                } catch (error) {
+                    console.error("Error saving suggestions to Firestore:", error);
+                }
+            } else {
+                localStorage.setItem(storageKey, JSON.stringify(suggestions));
+            }
+        };
+        saveData();
+    }, [suggestions, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
 
     const handleAddRootSuggestion = () => {
         if (newSuggestion.trim()) {
@@ -410,9 +448,18 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study', addGoal: (p
 
 
 const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+      firestore = useFirestore();
+    } catch(e) {
+      // Firebase not initialized on server
+    }
     const dailyTranslations = translations[mode]['Daily'];
-    const goalsStorageKey = `plan-app-data-${mode}-Daily-goals`;
     
+    const storageKey = `plan-app-data-${mode}-Daily-goals`;
+    const firestoreKey = `${mode}_Daily_goals`;
+
     const [goals, setGoals] = useState<{ morning: string[], afternoon: string[], evening: string[] }>({ morning: [], afternoon: [], evening: [] });
     const [isLoaded, setIsLoaded] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -429,24 +476,50 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' }) => {
     };
 
     useEffect(() => {
-        const savedGoals = localStorage.getItem(goalsStorageKey);
-        if (savedGoals) {
-            try {
-                const parsedGoals = JSON.parse(savedGoals);
-                if (parsedGoals && Array.isArray(parsedGoals.morning) && Array.isArray(parsedGoals.afternoon) && Array.isArray(parsedGoals.evening)) {
-                    setGoals(parsedGoals);
+        if (userLoading) return;
+
+        const loadData = async () => {
+            let loadedData = null;
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey];
                 }
-            } catch (e) {
-                console.error("Failed to parse daily goals from localStorage", e);
+            } else {
+                const saved = localStorage.getItem(storageKey);
+                if (saved) {
+                    try {
+                        loadedData = JSON.parse(saved);
+                    } catch (e) {
+                        console.error("Failed to parse daily goals from localStorage", e);
+                    }
+                }
             }
-        }
-        setIsLoaded(true);
-    }, [mode, goalsStorageKey]);
+
+            if (loadedData && Array.isArray(loadedData.morning) && Array.isArray(loadedData.afternoon) && Array.isArray(loadedData.evening)) {
+                setGoals(loadedData);
+            }
+            setIsLoaded(true);
+        };
+        
+        loadData();
+    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded) return;
-        localStorage.setItem(goalsStorageKey, JSON.stringify(goals));
-    }, [goals, goalsStorageKey, isLoaded]);
+        if (!isLoaded || userLoading) return;
+
+        const saveData = async () => {
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+            } else {
+                localStorage.setItem(storageKey, JSON.stringify(goals));
+            }
+        };
+
+        saveData();
+    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
     
     const addGoal = (period: 'morning' | 'afternoon' | 'evening', item: string) => {
         setGoals(prev => {
@@ -539,6 +612,14 @@ const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'sat
 const timePeriods = ['morning', 'afternoon', 'evening'];
 
 const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+        firestore = useFirestore();
+    } catch(e) {
+        // Firebase not initialized on server
+    }
+
     const weeklyTranslations = {
       work: {
         days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -563,7 +644,8 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     const t = weeklyTranslations[mode];
   
     type WeeklyGoals = Record<string, Record<string, string[]>>;
-    const weeklyStorageKey = `plan-app-data-${mode}-Weekly-goals`;
+    const storageKey = `plan-app-data-${mode}-Weekly-goals`;
+    const firestoreKey = `${mode}_Weekly_goals`;
     
     const [goals, setGoals] = useState<WeeklyGoals>({});
     const [isLoaded, setIsLoaded] = useState(false);
@@ -582,29 +664,48 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     };
   
     useEffect(() => {
-      const savedWeeklyGoals = localStorage.getItem(weeklyStorageKey);
-      if (savedWeeklyGoals) {
-        try {
-          const parsedGoals = JSON.parse(savedWeeklyGoals);
-          if (typeof parsedGoals === 'object' && parsedGoals !== null) {
-            setGoals(parsedGoals);
-          } else {
-            setGoals({});
-          }
-        } catch (e) { 
-            console.error("Failed to parse weekly goals", e);
-            setGoals({});
-        }
-      } else {
-        setGoals({});
-      }
-      setIsLoaded(true);
-    }, [mode, weeklyStorageKey]);
+        if(userLoading) return;
+        
+        const loadData = async () => {
+            let loadedData = {};
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey] || {};
+                }
+            } else {
+                const savedWeeklyGoals = localStorage.getItem(storageKey);
+                if (savedWeeklyGoals) {
+                    try {
+                        const parsedGoals = JSON.parse(savedWeeklyGoals);
+                        if (typeof parsedGoals === 'object' && parsedGoals !== null) {
+                            loadedData = parsedGoals;
+                        }
+                    } catch (e) { 
+                        console.error("Failed to parse weekly goals", e);
+                    }
+                }
+            }
+            setGoals(loadedData);
+            setIsLoaded(true);
+        };
+        loadData();
+    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
   
     useEffect(() => {
-      if (!isLoaded) return;
-      localStorage.setItem(weeklyStorageKey, JSON.stringify(goals));
-    }, [goals, weeklyStorageKey, isLoaded]);
+      if (!isLoaded || userLoading) return;
+      
+      const saveData = async () => {
+          if(user && firestore) {
+              const docRef = doc(firestore, 'plans', user.uid);
+              await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+          } else {
+              localStorage.setItem(storageKey, JSON.stringify(goals));
+          }
+      };
+      saveData();
+    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
     
     const addGoal = (day: string, period: string, item: string) => {
       if (!item.trim()) return;
@@ -716,6 +817,14 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 const weekKeys = ['week1', 'week2', 'week3', 'week4', 'week5'];
 
 const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+        firestore = useFirestore();
+    } catch(e) {
+        // Firebase not initialized on server
+    }
+
     const monthlyTranslations = {
       work: {
         title: "本月里程碑",
@@ -733,6 +842,7 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 
     const t = monthlyTranslations[mode];
     const storageKey = `plan-app-data-${mode}-Monthly-goals`;
+    const firestoreKey = `${mode}_Monthly_goals`;
 
     type MonthlyGoals = Record<string, string[]>;
 
@@ -743,21 +853,43 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     const [editingText, setEditingText] = useState('');
 
     useEffect(() => {
-        const savedGoals = localStorage.getItem(storageKey);
-        if (savedGoals) {
-            try {
-                setGoals(JSON.parse(savedGoals));
-            } catch (e) {
-                console.error("Failed to parse monthly goals", e);
+        if(userLoading) return;
+        const loadData = async () => {
+            let loadedData = {};
+             if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey] || {};
+                }
+            } else {
+                const savedGoals = localStorage.getItem(storageKey);
+                if (savedGoals) {
+                    try {
+                        loadedData = JSON.parse(savedGoals);
+                    } catch (e) {
+                        console.error("Failed to parse monthly goals", e);
+                    }
+                }
             }
-        }
-        setIsLoaded(true);
-    }, [storageKey]);
+            setGoals(loadedData);
+            setIsLoaded(true);
+        };
+        loadData();
+    }, [storageKey, user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded) return;
-        localStorage.setItem(storageKey, JSON.stringify(goals));
-    }, [goals, storageKey, isLoaded]);
+        if (!isLoaded || userLoading) return;
+        const saveData = async () => {
+            if(user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+            } else {
+                localStorage.setItem(storageKey, JSON.stringify(goals));
+            }
+        };
+        saveData();
+    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
 
     const handleNewItemChange = (week: string, value: string) => {
         setNewItem(prev => ({ ...prev, [week]: value }));
@@ -891,6 +1023,14 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 const quarterKeys = ['q1', 'q2', 'q3', 'q4'];
 
 const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+        firestore = useFirestore();
+    } catch(e) {
+        // Firebase not initialized on server
+    }
+
     const yearlyTranslations = {
       work: {
         title: "年度里程碑",
@@ -908,6 +1048,7 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
 
     const t = yearlyTranslations[mode];
     const storageKey = `plan-app-data-${mode}-Yearly-goals`;
+    const firestoreKey = `${mode}_Yearly_goals`;
 
     type YearlyGoals = Record<string, string[]>;
 
@@ -917,22 +1058,44 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' }) => {
     const [editingInfo, setEditingInfo] = useState<{ quarter: string, index: number } | null>(null);
     const [editingText, setEditingText] = useState('');
 
-    useEffect(() => {
-        const savedGoals = localStorage.getItem(storageKey);
-        if (savedGoals) {
-            try {
-                setGoals(JSON.parse(savedGoals));
-            } catch (e) {
-                console.error("Failed to parse yearly goals", e);
+     useEffect(() => {
+        if(userLoading) return;
+        const loadData = async () => {
+            let loadedData = {};
+             if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey] || {};
+                }
+            } else {
+                const savedGoals = localStorage.getItem(storageKey);
+                if (savedGoals) {
+                    try {
+                        loadedData = JSON.parse(savedGoals);
+                    } catch (e) {
+                        console.error("Failed to parse yearly goals", e);
+                    }
+                }
             }
-        }
-        setIsLoaded(true);
-    }, [storageKey]);
+            setGoals(loadedData);
+            setIsLoaded(true);
+        };
+        loadData();
+    }, [storageKey, user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded) return;
-        localStorage.setItem(storageKey, JSON.stringify(goals));
-    }, [goals, storageKey, isLoaded]);
+        if (!isLoaded || userLoading) return;
+        const saveData = async () => {
+            if(user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+            } else {
+                localStorage.setItem(storageKey, JSON.stringify(goals));
+            }
+        };
+        saveData();
+    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
 
     const handleNewItemChange = (quarter: string, value: string) => {
         setNewItem(prev => ({ ...prev, [quarter]: value }));
