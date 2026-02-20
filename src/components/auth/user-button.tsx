@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,8 +33,13 @@ export default function UserButton() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in with Google', error);
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error(
+          `This app's domain (${window.location.hostname}) is not authorized for Firebase Authentication. Please add it to the list of authorized domains in your Firebase project's Authentication settings.`
+        );
+      }
     }
   };
 
