@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useMemo } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import { initializeApp, getApps } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
@@ -16,7 +16,7 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
         return;
     }
 
-    console.log('Starting migration of local data to Firestore for user:', userId);
+    console.log('开始将本地数据迁移到 Firestore，用户ID:', userId);
 
     const dataToMigrate: { [key: string]: any } = {};
     const localDataKeysToRemove: string[] = [];
@@ -31,13 +31,13 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
                 dataToMigrate[firestoreKey] = data;
                 localDataKeysToRemove.push(storageKey);
             } catch (e) {
-                console.error(`Error parsing local data for key ${storageKey}:`, e);
+                console.error(`解析本地数据出错，键: ${storageKey}:`, e);
             }
         }
     }
 
     if (Object.keys(dataToMigrate).length === 0) {
-        console.log('No valid local data found to migrate.');
+        console.log('未找到有效的本地数据进行迁移。');
         return;
     }
 
@@ -48,10 +48,10 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
         for (const key of localDataKeysToRemove) {
             localStorage.removeItem(key);
         }
-        console.log('Local data migration to Firestore successful.');
+        console.log('本地数据成功迁移到 Firestore。');
 
     } catch (error) {
-        console.error('Error migrating local data to Firestore:', error);
+        console.error('迁移本地数据到 Firestore 时出错:', error);
     }
 };
 
@@ -72,20 +72,18 @@ const FirebaseContext = createContext<FirebaseContextValue>({
 });
 
 export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [value, setValue] = useState<FirebaseContextValue>({
-        app: null,
-        auth: null,
-        firestore: null,
-        user: null,
-        loading: true,
-    });
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const { app, auth, firestore } = useMemo(() => {
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
         const auth = getAuth(app);
         const firestore = getFirestore(app);
+        return { app, auth, firestore };
+    }, []);
 
-        setValue(prev => ({ ...prev, app, auth, firestore }));
+    useEffect(() => {
+        if (!auth || !firestore) return;
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -100,14 +98,23 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                         lastLogin: serverTimestamp(),
                     }, { merge: true });
                 } catch (error) {
-                    console.error("Error updating user document:", error);
+                    console.error("更新用户文档时出错:", error);
                 }
             }
-            setValue(prev => ({ ...prev, user, loading: false }));
+            setUser(user);
+            setLoading(false);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [auth, firestore]);
+
+    const value = useMemo(() => ({
+        app,
+        auth,
+        firestore,
+        user,
+        loading,
+    }), [app, auth, firestore, user, loading]);
 
     return (
         <FirebaseContext.Provider value={value}>

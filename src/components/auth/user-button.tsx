@@ -29,10 +29,10 @@ export default function UserButton() {
     try {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error('Error signing in with Google', error);
+      console.error('Google 登录/注册出错', error);
       if (error.code === 'auth/unauthorized-domain') {
         console.error(
-          `This app's domain (${window.location.hostname}) is not authorized for Firebase Authentication. Please add it to the list of authorized domains in your Firebase project's Authentication settings.`
+          `此应用的域名 (${window.location.hostname}) 未被授权进行 Firebase Authentication。请将其添加到您 Firebase 项目的 Authentication 设置中的授权网域列表中。`
         );
       }
     }
@@ -43,7 +43,7 @@ export default function UserButton() {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Error signing out', error);
+      console.error('退出登录出错', error);
     }
   };
 
@@ -55,7 +55,7 @@ export default function UserButton() {
     return (
       <Button onClick={handleSignIn} variant="outline">
         <LogIn className="mr-2 h-4 w-4" />
-        登录
+        注册 / 登录
       </Button>
     );
   }
