@@ -63,17 +63,14 @@ export default function UserButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
-            <AvatarFallback>
-              {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-           <span className="sr-only">Toggle user menu</span>
-        </Button>
+        <Avatar className="h-10 w-10 cursor-pointer">
+          <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
+          <AvatarFallback>
+            {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.displayName}</p>
