@@ -27,7 +27,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 type PlanFormProps = {
   mode: 'work' | 'study' | 'life' | 'travel';
-  planType: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  planType: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Itinerary';
   placeholder: string;
 };
 
@@ -120,33 +120,19 @@ const translations = {
         }
     },
     travel: {
-        'Daily': {
-            plan: '每日旅行计划',
-            description: '从右侧选择或添加你的行程，享受每一天的旅程。',
-            goals: '我的每日行程',
-            morning: '上午 (9:00 - 12:00)',
-            afternoon: '下午 (13:00 - 18:00)',
-            evening: '晚上 (19:00 - 23:00)',
-            suggestionsTitle: '可能的旅行项',
-            suggestionsDescription: '双击编辑，或添加到计划中。',
-            addSuggestion: '添加',
-            noPlans: '暂无计划，从右侧添加或直接创建',
+        'Itinerary': {
+            plan: '假期行程规划',
+            description: '为你的下一个假期制定详细的每日行程吧！',
+            addDay: '添加新的一天',
+            addItem: '添加项目',
+            day: '第',
+            dayUnit: '天',
+            emptyDay: '这一天玩点什么呢？从下方添加计划项吧。',
+            holidayTitle: '假期名称 / 目的地',
+            holidayPlaceholder: '例如：东京五日游',
+            addItemPlaceholder: '例如：参观浅草寺',
+            saveItem: '添加',
         },
-        'Weekly': {
-            plan: '每周旅行计划',
-            description: '规划整周的旅行路线和活动，深度探索目的地。',
-            goals: '本周旅行重点'
-        },
-        'Monthly': {
-            plan: '每月旅行计划',
-            description: '为长途旅行或深度游制定月度计划。',
-            goals: '本月旅行蓝图'
-        },
-        'Yearly': {
-            plan: '年度旅行计划',
-            description: '设定年度旅行目标，探索世界的不同角落。',
-            goals: '年度旅行目标'
-        }
     }
 };
 
@@ -254,14 +240,14 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                     <div 
                         onDoubleClick={() => { setEditText(item.text); setEditing(true); }}
                         title="双击编辑"
-                        className="flex-1 flex items-center min-h-[38px] cursor-pointer py-1 text-sm break-words"
+                        className="flex-1 flex items-center min-h-[38px] cursor-pointer py-1 text-sm break-words relative z-10"
                     >
                         {item.text}
                     </div>
                 )}
                 
                 {!editing && (
-                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0 opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
                          <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -486,7 +472,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
                 />
                 <Button onClick={handleAddRootSuggestion} size="sm">{dailyTranslations.addSuggestion}</Button>
             </div>
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 -mx-4 px-4">
                 <div className="space-y-1 pr-2">
                    {suggestions.map((item, index) => (
                         <SuggestionNode
@@ -667,6 +653,187 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
         </div>
     );
 }
+
+const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
+    const { user, loading: userLoading } = useUser();
+    let firestore;
+    try {
+        firestore = useFirestore();
+    } catch(e) {
+        // Firebase not initialized on server
+    }
+    
+    const t = translations[mode]['Itinerary'];
+    const storageKey = `plan-app-data-${mode}-Itinerary-plan`;
+    const firestoreKey = `${mode}_Itinerary_plan`;
+
+    type ItineraryPlan = {
+      title: string;
+      days: { id: string; items: string[] }[];
+    };
+
+    const [plan, setPlan] = useState<ItineraryPlan>({ title: '', days: [{ id: crypto.randomUUID(), items: [] }] });
+    const [newItem, setNewItem] = useState<Record<string, string>>({}); // { [dayId]: "new item text" }
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // useEffect for loading
+    useEffect(() => {
+        if(userLoading) return;
+        const loadData = async () => {
+            let loadedData: ItineraryPlan | null = null;
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    loadedData = docSnap.data()[firestoreKey];
+                }
+            } else {
+                const savedPlan = localStorage.getItem(storageKey);
+                if (savedPlan) {
+                    try {
+                        loadedData = JSON.parse(savedPlan);
+                    } catch (e) {
+                        console.error("Failed to parse itinerary plan", e);
+                    }
+                }
+            }
+            if (loadedData && loadedData.title !== undefined && Array.isArray(loadedData.days)) {
+                setPlan(loadedData);
+            } else {
+                // Set a default of one day
+                setPlan({ title: '', days: [{ id: crypto.randomUUID(), items: [] }] });
+            }
+            setIsLoaded(true);
+        };
+        loadData();
+    }, [storageKey, user, userLoading, firestore, firestoreKey]);
+
+    // useEffect for saving
+    useEffect(() => {
+        if (!isLoaded || userLoading) return;
+        const saveData = async () => {
+            if (user && firestore) {
+                const docRef = doc(firestore, 'plans', user.uid);
+                await setDoc(docRef, { [firestoreKey]: plan }, { merge: true });
+            } else {
+                localStorage.setItem(storageKey, JSON.stringify(plan));
+            }
+        };
+        saveData();
+    }, [plan, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
+
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setPlan(p => ({...p, title: e.target.value}));
+    }
+
+    const addDay = () => {
+        setPlan(p => ({ ...p, days: [...p.days, { id: crypto.randomUUID(), items: [] }] }));
+    };
+
+    const removeDay = (id: string) => {
+        setPlan(p => ({...p, days: p.days.filter(d => d.id !== id)}));
+    };
+
+    const handleNewItemChange = (dayId: string, value: string) => {
+        setNewItem(prev => ({ ...prev, [dayId]: value }));
+    };
+
+    const addItem = (dayId: string) => {
+        const itemText = newItem[dayId]?.trim();
+        if (!itemText) return;
+        setPlan(p => ({
+            ...p,
+            days: p.days.map(day => {
+                if (day.id === dayId) {
+                    if (day.items.includes(itemText)) return day;
+                    return { ...day, items: [...day.items, itemText] };
+                }
+                return day;
+            })
+        }));
+        handleNewItemChange(dayId, '');
+    };
+
+    const removeItem = (dayId: string, indexToRemove: number) => {
+        setPlan(p => ({
+            ...p,
+            days: p.days.map(day => {
+                if (day.id === dayId) {
+                    return { ...day, items: day.items.filter((_, index) => index !== indexToRemove) };
+                }
+                return day;
+            })
+        }));
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <Label htmlFor="holiday-title" className="text-lg font-semibold">{t.holidayTitle}</Label>
+                <Input
+                    id="holiday-title"
+                    placeholder={t.holidayPlaceholder}
+                    value={plan.title}
+                    onChange={handleTitleChange}
+                    className="mt-2 text-base"
+                />
+            </div>
+
+            <Accordion type="multiple" defaultValue={plan.days.map(d => d.id)} className="w-full" key={plan.days.length}>
+                {plan.days.map((day, index) => (
+                    <AccordionItem value={day.id} key={day.id}>
+                        <AccordionTrigger>
+                            <div className="flex items-center justify-between w-full pr-2">
+                                <div className="flex items-center gap-4">
+                                    <span>{t.day}{index + 1}{t.dayUnit}</span>
+                                    <Badge variant="secondary">{day.items.length} 个项目</Badge>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); removeDay(day.id); }}>
+                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                                </Button>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <div className="space-y-3 pl-2">
+                                {day.items.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {day.items.map((item, itemIndex) => (
+                                            <li key={itemIndex} className="group flex items-center gap-2 text-base">
+                                                <span className="flex-1">{item}</span>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100" onClick={() => removeItem(day.id, itemIndex)}>
+                                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                                                </Button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">{t.emptyDay}</p>
+                                )}
+                                <div className="flex gap-2 pt-2">
+                                    <Input
+                                        placeholder={t.addItemPlaceholder}
+                                        value={newItem[day.id] || ''}
+                                        onChange={(e) => handleNewItemChange(day.id, e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addItem(day.id)}
+                                        className="h-9"
+                                    />
+                                    <Button onClick={() => addItem(day.id)}>{t.saveItem}</Button>
+                                </div>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                ))}
+            </Accordion>
+             <div className="flex justify-center pt-4">
+                <Button onClick={addDay} variant="outline" className="gap-2">
+                    <PlusCircle className="h-4 w-4" />
+                    {t.addDay}
+                </Button>
+            </div>
+        </div>
+    );
+};
+
 
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const timePeriods = ['morning', 'afternoon', 'evening'];
@@ -1414,7 +1581,13 @@ const YearInfo = () => {
 
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
-  const currentTranslation = translations[mode][planType];
+  const currentTranslation = translations[mode][planType as keyof typeof translations[typeof mode]];
+  
+  if (!currentTranslation) {
+    // This can happen if the mode and planType combination is not defined,
+    // especially after changing the travel mode logic.
+    return null;
+  }
   
   return (
     <Card className="w-full shadow-lg max-w-7xl mx-auto">
@@ -1437,6 +1610,8 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
           <MonthlyPlanView mode={mode} />
         ) : planType === 'Yearly' ? (
             <YearlyPlanView mode={mode} />
+        ) : planType === 'Itinerary' ? (
+            <ItineraryPlanView mode={mode as 'travel'} />
         ) : (
             <div className="space-y-2">
                 <Label htmlFor="legacy-goals" className="text-lg">{currentTranslation.goals}</Label>

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Header from '@/components/header';
 import PlanForm from '@/components/plan-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, ChevronsRight, Milestone, Star } from 'lucide-react';
+import { Calendar, ChevronsRight, Milestone, Star, Map } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [mode, setMode] = useState<'work' | 'study' | 'life' | 'travel'>('work');
@@ -102,32 +103,11 @@ export default function Home() {
     ],
     travel: [
       {
-        value: 'daily',
-        label: '每日',
-        icon: <Calendar className="w-5 h-5 mr-2" />,
-        planType: 'Daily' as const,
-        placeholder: '例如：参观一个景点，品尝当地美食，写旅行日记。',
-      },
-      {
-        value: 'weekly',
-        label: '每周',
-        icon: <ChevronsRight className="w-5 h-5 mr-2" />,
-        planType: 'Weekly' as const,
-        placeholder: '例如：探索一个城市，学习几句当地语言，整理旅行照片。',
-      },
-      {
-        value: 'monthly',
-        label: '每月',
-        icon: <Milestone className="w-5 h-5 mr-2" />,
-        planType: 'Monthly' as const,
-        placeholder: '例如：完成一次长途旅行，深度体验一种文化，制作旅行视频。',
-      },
-      {
-        value: 'yearly',
-        label: '年度',
-        icon: <Star className="w-5 h-5 mr-2" />,
-        planType: 'Yearly' as const,
-        placeholder: '例如：去一个新的国家，挑战一项极限运动，完成一次环球旅行的一部分。',
+        value: 'itinerary',
+        label: '行程规划',
+        icon: <Map className="w-5 h-5 mr-2" />,
+        planType: 'Itinerary' as const,
+        placeholder: '规划您的假期行程，例如：第一天：抵达目的地，入住酒店...',
       },
     ],
   };
@@ -138,8 +118,11 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header mode={mode} setMode={setMode} />
       <main className="flex-1 container mx-auto p-4 sm:p-6 md:p-8">
-        <Tabs defaultValue="daily" className="w-full max-w-6xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+        <Tabs defaultValue={plans[0].value} className="w-full max-w-6xl mx-auto" key={mode}>
+          <TabsList className={cn(
+            "grid w-full h-auto",
+            plans.length > 1 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 max-w-xs mx-auto"
+          )}>
             {plans.map((plan) => (
               <TabsTrigger key={plan.value} value={plan.value} className="py-3 text-base">
                 {plan.icon} {plan.label}
