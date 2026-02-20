@@ -72,19 +72,30 @@ const FirebaseContext = createContext<FirebaseContextValue>({
 });
 
 export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [services, setServices] = useState<{
+        app: FirebaseApp;
+        auth: Auth;
+        firestore: Firestore;
+    } | null>(null);
+
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const { app, auth, firestore } = useMemo(() => {
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-        const auth = getAuth(app);
-        const firestore = getFirestore(app);
-        return { app, auth, firestore };
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+            const auth = getAuth(app);
+            const firestore = getFirestore(app);
+            setServices({ app, auth, firestore });
+        }
     }, []);
 
     useEffect(() => {
-        if (!auth || !firestore) return;
+        if (!services) {
+            return;
+        }
 
+        const { auth, firestore } = services;
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 await migrateLocalDataToFirestore(user.uid, firestore);
@@ -106,15 +117,15 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
 
         return () => unsubscribe();
-    }, [auth, firestore]);
+    }, [services]);
 
     const value = useMemo(() => ({
-        app,
-        auth,
-        firestore,
+        app: services?.app ?? null,
+        auth: services?.auth ?? null,
+        firestore: services?.firestore ?? null,
         user,
         loading,
-    }), [app, auth, firestore, user, loading]);
+    }), [services, user, loading]);
 
     return (
         <FirebaseContext.Provider value={value}>
