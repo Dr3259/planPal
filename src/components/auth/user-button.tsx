@@ -31,8 +31,8 @@ export default function UserButton() {
     } catch (error: any) {
       console.error('Google 登录/注册出错', error);
       if (error.code === 'auth/unauthorized-domain') {
-        console.error(
-          `此应用的域名 (${window.location.hostname}) 未被授权进行 Firebase Authentication。请将其添加到您 Firebase 项目的 Authentication 设置中的授权网域列表中。`
+        alert(
+          `此应用的域名 (${window.location.hostname}) 未被授权进行 Firebase Authentication。\n\n请将此域名添加到您 Firebase 项目的 Authentication -> Settings -> Authorized domains 列表中。`
         );
       }
     }
@@ -62,15 +62,13 @@ export default function UserButton() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
-            <AvatarFallback>
-              {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
+      <DropdownMenuTrigger>
+        <Avatar className="h-10 w-10 cursor-pointer">
+          <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
+          <AvatarFallback>
+            {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-normal">
