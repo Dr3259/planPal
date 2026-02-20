@@ -63,12 +63,14 @@ export default function UserButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="h-10 w-10 cursor-pointer">
-          <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
-          <AvatarFallback>
-            {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? ''} />
+            <AvatarFallback>
+              {user.displayName?.charAt(0).toUpperCase() ?? user.email?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel className="font-normal">
