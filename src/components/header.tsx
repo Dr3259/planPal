@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import UserButton from './auth/user-button';
+// import UserButton from './auth/user-button';
 import React from 'react';
 
 type Mode = 'work' | 'study' | 'life' | 'travel';
@@ -63,7 +63,7 @@ export default function Header({ mode, setMode }: HeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <UserButton />
+          {/* <UserButton /> */}
         </div>
       </div>
     </header>

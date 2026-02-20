@@ -20,6 +20,7 @@ import {
 import { Skeleton } from '../ui/skeleton';
 
 export default function UserButton() {
+  /*
   const { user, loading } = useUser();
   const auth = useAuth();
 
@@ -91,4 +92,6 @@ export default function UserButton() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+  */
+ return null;
 }
