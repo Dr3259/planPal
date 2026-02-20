@@ -38,13 +38,13 @@ export default function Header({ mode, setMode }: HeaderProps) {
         <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 w-[180px] justify-center">
+              <Button variant="ghost" className="gap-2">
                 {modeConfig[mode].icon}
                 <span>{modeConfig[mode].text}</span>
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[180px]">
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setMode('work')} className="gap-2">
                 <Briefcase />
                 <span>工作模式</span>
