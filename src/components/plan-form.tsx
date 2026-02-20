@@ -212,9 +212,9 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 
     return (
         <div className="relative">
-            <div className="absolute -left-3.5 top-0 h-full z-0">
-                {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full')} />}
-                {level > 0 && <div className="absolute top-4 h-px w-3.5 bg-border" />}
+            <div className="absolute -left-3.5 top-0 h-full">
+                {level > 0 && <div className={cn("absolute top-0 w-px bg-border", isLast ? 'h-5' : 'h-full', editing && 'z-0')} />}
+                {level > 0 && <div className={cn("absolute top-4 h-px w-3.5 bg-border", editing && 'z-0')} />}
             </div>
             <div className="flex items-center gap-2 group">
                 {editing ? (
@@ -301,7 +301,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                 ))}
                 {addingChild && (
                     <div className="flex items-center gap-1 mt-1 py-1 relative z-10">
-                        <div className="absolute -left-3.5 top-0 h-full z-0">
+                        <div className="absolute -left-3.5 top-0 h-full">
                            <div className="absolute top-0 h-5 w-px bg-border" />
                            <div className="absolute top-4 h-px w-3.5 bg-border" />
                         </div>
@@ -788,8 +788,10 @@ const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
                                     <span>{t.day}{index + 1}{t.dayUnit}</span>
                                     <Badge variant="secondary">{day.items.length} 个项目</Badge>
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); removeDay(day.id); }}>
-                                    <Trash2 className="h-4 w-4 text-destructive/80" />
+                                <Button asChild variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); removeDay(day.id); }}>
+                                    <div>
+                                        <Trash2 className="h-4 w-4 text-destructive/80" />
+                                    </div>
                                 </Button>
                             </div>
                         </AccordionTrigger>
@@ -1627,3 +1629,4 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
     </Card>
   );
 }
+
