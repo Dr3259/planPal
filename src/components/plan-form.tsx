@@ -332,12 +332,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 
 const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | 'travel', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-      firestore = useFirestore();
-    } catch(e) {
-      // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
     const dailyTranslations = translations[mode]['Daily'];
 
     const storageKey = `plan-app-data-${mode}-Daily-suggestions-tree`;
@@ -495,12 +490,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
 
 const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-      firestore = useFirestore();
-    } catch(e) {
-      // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
     const dailyTranslations = translations[mode]['Daily'];
     
     const storageKey = `plan-app-data-${mode}-Daily-goals`;
@@ -656,12 +646,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
 
 const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-        firestore = useFirestore();
-    } catch(e) {
-        // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
     
     const t = translations[mode]['Itinerary'];
     const storageKey = `plan-app-data-${mode}-Itinerary-plan`;
@@ -842,12 +827,7 @@ const timePeriods = ['morning', 'afternoon', 'evening'];
 
 const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-        firestore = useFirestore();
-    } catch(e) {
-        // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
 
     const weeklyTranslations = {
       work: {
@@ -1065,12 +1045,7 @@ const weekKeys = ['week1', 'week2', 'week3', 'week4', 'week5'];
 
 const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-        firestore = useFirestore();
-    } catch(e) {
-        // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
 
     const monthlyTranslations = {
       work: {
@@ -1283,12 +1258,7 @@ const quarterKeys = ['q1', 'q2', 'q3', 'q4'];
 
 const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
     const { user, loading: userLoading } = useUser();
-    let firestore;
-    try {
-        firestore = useFirestore();
-    } catch(e) {
-        // Firebase not initialized on server
-    }
+    const firestore = useFirestore();
 
     const yearlyTranslations = {
       work: {

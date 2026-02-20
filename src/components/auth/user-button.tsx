@@ -21,12 +21,7 @@ import { Skeleton } from '../ui/skeleton';
 
 export default function UserButton() {
   const { user, loading } = useUser();
-  let auth;
-  try {
-    auth = useAuth();
-  } catch (e) {
-    // Firebase not initialized on server. Auth actions will not be available.
-  }
+  const auth = useAuth();
 
   const handleSignIn = async () => {
     if (!auth) return;

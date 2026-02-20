@@ -33,26 +33,17 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     );
 };
 
-export const useFirebaseApp = (): FirebaseApp => {
+export const useFirebaseApp = (): FirebaseApp | null => {
     const context = useContext(FirebaseContext);
-    if (!context) {
-        throw new Error('useFirebaseApp must be used within a FirebaseProvider');
-    }
-    return context.app;
+    return context?.app ?? null;
 };
 
-export const useAuth = (): Auth => {
+export const useAuth = (): Auth | null => {
     const context = useContext(FirebaseContext);
-    if (!context) {
-        throw new Error('useAuth must be used within a FirebaseProvider');
-    }
-    return context.auth;
+    return context?.auth ?? null;
 };
 
-export const useFirestore = (): Firestore => {
+export const useFirestore = (): Firestore | null => {
     const context = useContext(FirebaseContext);
-    if (!context) {
-        throw new Error('useFirestore must be used within a FirebaseProvider');
-    }
-    return context.firestore;
+    return context?.firestore ?? null;
 };

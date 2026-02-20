@@ -24,7 +24,7 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
                 const data = JSON.parse(dataStr);
                 // Transform storageKey to firestoreKey, e.g.,
                 // 'plan-app-data-work-Daily-goals' -> 'work_Daily_goals'
-                const firestoreKey = storageKey.substring('plan-app-data-'.length).replace('-', '_');
+                const firestoreKey = storageKey.substring('plan-app-data-'.length).replace(/-/g, '_');
                 
                 dataToMigrate[firestoreKey] = data;
                 localDataKeysToRemove.push(storageKey);
@@ -61,15 +61,8 @@ export const useUser = () => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     
-    // It's possible to use the provider hooks before the provider is initialized.
-    // This can happen in server components. We'll handle this gracefully.
-    let auth, firestore;
-    try {
-        auth = useAuth();
-        firestore = useFirestore();
-    } catch (e) {
-        // We are likely on the server.
-    }
+    const auth = useAuth();
+    const firestore = useFirestore();
 
 
     useEffect(() => {
