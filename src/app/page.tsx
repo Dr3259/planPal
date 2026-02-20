@@ -8,7 +8,7 @@ import { Calendar, ChevronsRight, Milestone, Star, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Home() {
-  const [mode, setMode] = useState<'work' | 'study' | 'life' | 'travel'>('work');
+  const [mode, setMode] = useState<'work' | 'study' | 'life' | 'travel'>('study');
 
   const plansConfig = {
     work: [

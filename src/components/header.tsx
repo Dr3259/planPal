@@ -45,13 +45,13 @@ export default function Header({ mode, setMode }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setMode('work')} className="gap-2">
-                <Briefcase />
-                <span>工作模式</span>
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setMode('study')} className="gap-2">
                 <BookOpen />
                 <span>学习模式</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setMode('work')} className="gap-2">
+                <Briefcase />
+                <span>工作模式</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setMode('life')} className="gap-2">
                 <Home />
