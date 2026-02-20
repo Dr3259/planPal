@@ -28,7 +28,7 @@ export default function Header({ mode, setMode }: HeaderProps) {
         <div className="flex items-center gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 w-[180px] justify-start">
+              <Button variant="ghost" className="gap-2 w-[180px]">
                 {mode === 'work' ? (
                   <>
                     <Briefcase className="mr-2" />
@@ -40,7 +40,7 @@ export default function Header({ mode, setMode }: HeaderProps) {
                     <span>学习模式</span>
                   </>
                 )}
-                <ChevronDown className="w-4 h-4 ml-auto" />
+                <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[180px]">
