@@ -4,7 +4,7 @@ import React, { createContext, useContext, ReactNode, useState, useEffect, useMe
 import type { FirebaseApp } from 'firebase/app';
 import { initializeApp, getApps } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from './config';
@@ -87,6 +87,19 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
             const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
             const auth = getAuth(app);
             const firestore = getFirestore(app);
+            
+            // 设置持久化为本地存储，确保刷新页面后快速恢复
+            setPersistence(auth, browserLocalPersistence).catch(error => {
+                logger.error('设置认证持久化失败:', error);
+            });
+            
+            // 立即检查当前用户状态，减少初始加载时间
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+                setUser(currentUser);
+                setLoading(false);
+            }
+            
             setServices({ app, auth, firestore });
         }
     }, []);
@@ -98,23 +111,24 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         const { auth, firestore } = services;
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            setUser(user);
+            setLoading(false);
+            
             if (user) {
-                await migrateLocalDataToFirestore(user.uid, firestore);
-                const userRef = doc(firestore, 'users', user.uid);
-                try {
-                    await setDoc(userRef, {
+                // 异步操作不阻塞 UI 更新
+                Promise.all([
+                    migrateLocalDataToFirestore(user.uid, firestore),
+                    setDoc(doc(firestore, 'users', user.uid), {
                         uid: user.uid,
                         email: user.email,
                         displayName: user.displayName,
                         photoURL: user.photoURL,
                         lastLogin: serverTimestamp(),
-                    }, { merge: true });
-                } catch (error) {
-                    logger.error("更新用户文档时出错:", error);
-                }
+                    }, { merge: true })
+                ]).catch(error => {
+                    logger.error("更新用户数据时出错:", error);
+                });
             }
-            setUser(user);
-            setLoading(false);
         });
 
         return () => unsubscribe();

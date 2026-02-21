@@ -366,63 +366,89 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
         });
     };
     
+    // 第一阶段：立即从 localStorage 加载，不等待认证
     useEffect(() => {
-        if (userLoading) return;
-
-        const loadData = async () => {
-            let loadedData = null;
-            if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey];
-                }
-            } else {
-                const saved = localStorage.getItem(storageKey);
-                if (saved) {
-                    try {
-                        loadedData = JSON.parse(saved);
-                    } catch (e) {
-                        logger.error("Failed to parse suggestions from localStorage", e);
+        const loadFromLocalStorage = () => {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const loadedData = JSON.parse(saved);
+                    if (Array.isArray(loadedData) && loadedData.length > 0) {
+                        if (typeof loadedData[0] === 'object') {
+                            setSuggestions(loadedData);
+                        } else if (typeof loadedData[0] === 'string') {
+                            const migrated = loadedData.map((text: string) => ({ 
+                                id: crypto.randomUUID(), 
+                                text, 
+                                children: [] 
+                            }));
+                            setSuggestions(migrated);
+                        }
+                        setIsLoaded(true);
+                        return;
                     }
+                } catch (e) {
+                    logger.error("Failed to parse suggestions from localStorage", e);
                 }
             }
-
-            if (Array.isArray(loadedData) && loadedData.length > 0) {
-                 if (typeof loadedData[0] === 'object') {
-                    setSuggestions(loadedData);
-                } else if (typeof loadedData[0] === 'string') {
-                    // Migrate from old string array format
-                    const migrated = loadedData.map((text: string) => ({ id: crypto.randomUUID(), text, children: [] }));
-                    setSuggestions(migrated);
-                }
-            } else {
-                const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ id: crypto.randomUUID(), text, children: [] }));
-                setSuggestions(defaultItems);
-            }
+            
+            // 如果 localStorage 没有数据，使用默认值
+            const defaultItems = defaultSuggestionsRaw[mode].map(text => ({ 
+                id: crypto.randomUUID(), 
+                text, 
+                children: [] 
+            }));
+            setSuggestions(defaultItems);
             setIsLoaded(true);
         };
+        
+        loadFromLocalStorage();
+    }, [mode, storageKey]);
 
-        loadData();
-    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
+    useEffect(() => {
+        if (userLoading) return;
+        
+        const loadFromFirestore = async () => {
+            if (user && firestore) {
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (Array.isArray(firestoreData) && firestoreData.length > 0) {
+                            setSuggestions(firestoreData);
+                        }
+                    }
+                } catch (error) {
+                    logger.error("Error loading suggestions from Firestore:", error);
+                }
+            }
+        };
+        
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded || userLoading) return;
+        if (!isLoaded) return;
 
         const saveData = async () => {
-            if (user && firestore) {
+            // 总是保存到 localStorage（即使用户已登录）
+            localStorage.setItem(storageKey, JSON.stringify(suggestions));
+            
+            // 如果用户已登录且认证完成，也保存到 Firestore
+            if (user && firestore && !userLoading) {
                 const docRef = doc(firestore, 'plans', user.uid);
                 try {
                     await setDoc(docRef, { [firestoreKey]: suggestions }, { merge: true });
                 } catch (error) {
                     logger.error("Error saving suggestions to Firestore:", error);
                 }
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(suggestions));
             }
         };
+        
         saveData();
-    }, [suggestions, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
+    }, [suggestions, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
 
     const handleAddRootSuggestion = () => {
         if (newSuggestion.trim()) {
@@ -512,51 +538,70 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
         return hash;
     };
 
+    // 第一阶段：立即从 localStorage 加载，不等待认证
     useEffect(() => {
-        if (userLoading) return;
-
-        const loadData = async () => {
-            let loadedData = null;
-            if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey];
-                }
-            } else {
-                const saved = localStorage.getItem(storageKey);
-                if (saved) {
-                    try {
-                        loadedData = JSON.parse(saved);
-                    } catch (e) {
-                        logger.error("Failed to parse daily goals from localStorage", e);
+        const loadFromLocalStorage = () => {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const loadedData = JSON.parse(saved);
+                    if (loadedData && Array.isArray(loadedData.morning) && Array.isArray(loadedData.afternoon) && Array.isArray(loadedData.evening)) {
+                        setGoals(loadedData);
                     }
+                } catch (e) {
+                    logger.error("Failed to parse daily goals from localStorage", e);
                 }
-            }
-
-            if (loadedData && Array.isArray(loadedData.morning) && Array.isArray(loadedData.afternoon) && Array.isArray(loadedData.evening)) {
-                setGoals(loadedData);
             }
             setIsLoaded(true);
         };
         
-        loadData();
-    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
+        loadFromLocalStorage();
+    }, [mode, storageKey]);
+
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
+    useEffect(() => {
+        if (userLoading) return;
+        
+        const loadFromFirestore = async () => {
+            if (user && firestore) {
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (firestoreData && Array.isArray(firestoreData.morning) && Array.isArray(firestoreData.afternoon) && Array.isArray(firestoreData.evening)) {
+                            setGoals(firestoreData);
+                        }
+                    }
+                } catch (error) {
+                    logger.error("Error loading daily goals from Firestore:", error);
+                }
+            }
+        };
+        
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded || userLoading) return;
+        if (!isLoaded) return;
 
         const saveData = async () => {
-            if (user && firestore) {
+            // 总是保存到 localStorage（即使用户已登录）
+            localStorage.setItem(storageKey, JSON.stringify(goals));
+            
+            // 如果用户已登录且认证完成，也保存到 Firestore
+            if (user && firestore && !userLoading) {
                 const docRef = doc(firestore, 'plans', user.uid);
-                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(goals));
+                try {
+                    await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+                } catch (error) {
+                    logger.error("Error saving daily goals to Firestore:", error);
+                }
             }
         };
 
         saveData();
-    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
+    }, [goals, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
     
     const addGoal = (period: 'morning' | 'afternoon' | 'evening', item: string) => {
         setGoals(prev => {
@@ -662,51 +707,70 @@ const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
     const [newItem, setNewItem] = useState<Record<string, string>>({}); // { [dayId]: "new item text" }
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // useEffect for loading
+    // 第一阶段：立即从 localStorage 加载，不等待认证
     useEffect(() => {
-        if(userLoading) return;
-        const loadData = async () => {
-            let loadedData: ItineraryPlan | null = null;
-            if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey];
-                }
-            } else {
-                const savedPlan = localStorage.getItem(storageKey);
-                if (savedPlan) {
-                    try {
-                        loadedData = JSON.parse(savedPlan);
-                    } catch (e) {
-                        logger.error("Failed to parse itinerary plan", e);
+        const loadFromLocalStorage = () => {
+            const savedPlan = localStorage.getItem(storageKey);
+            if (savedPlan) {
+                try {
+                    const loadedData: ItineraryPlan = JSON.parse(savedPlan);
+                    if (loadedData && loadedData.title !== undefined && Array.isArray(loadedData.days)) {
+                        setPlan(loadedData);
+                        setIsLoaded(true);
+                        return;
                     }
+                } catch (e) {
+                    logger.error("Failed to parse itinerary plan", e);
                 }
             }
-            if (loadedData && loadedData.title !== undefined && Array.isArray(loadedData.days)) {
-                setPlan(loadedData);
-            } else {
-                // Set a default of one day
-                setPlan({ title: '', days: [{ id: crypto.randomUUID(), items: [] }] });
-            }
+            // Set a default of one day
+            setPlan({ title: '', days: [{ id: crypto.randomUUID(), items: [] }] });
             setIsLoaded(true);
         };
-        loadData();
-    }, [storageKey, user, userLoading, firestore, firestoreKey]);
+        loadFromLocalStorage();
+    }, [storageKey]);
+
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
+    useEffect(() => {
+        if(userLoading) return;
+        const loadFromFirestore = async () => {
+            if (user && firestore) {
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (firestoreData && firestoreData.title !== undefined && Array.isArray(firestoreData.days)) {
+                            setPlan(firestoreData);
+                        }
+                    }
+                } catch (error) {
+                    logger.error("Error loading itinerary plan from Firestore:", error);
+                }
+            }
+        };
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
 
     // useEffect for saving
     useEffect(() => {
-        if (!isLoaded || userLoading) return;
+        if (!isLoaded) return;
         const saveData = async () => {
-            if (user && firestore) {
+            // 总是保存到 localStorage（即使用户已登录）
+            localStorage.setItem(storageKey, JSON.stringify(plan));
+            
+            // 如果用户已登录且认证完成，也保存到 Firestore
+            if (user && firestore && !userLoading) {
                 const docRef = doc(firestore, 'plans', user.uid);
-                await setDoc(docRef, { [firestoreKey]: plan }, { merge: true });
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(plan));
+                try {
+                    await setDoc(docRef, { [firestoreKey]: plan }, { merge: true });
+                } catch (error) {
+                    logger.error("Error saving itinerary plan to Firestore:", error);
+                }
             }
         };
         saveData();
-    }, [plan, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
+    }, [plan, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
 
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPlan(p => ({...p, title: e.target.value}));
@@ -891,49 +955,67 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
         return hash;
     };
   
+    // 第一阶段：立即从 localStorage 加载，不等待认证
+    useEffect(() => {
+        const loadFromLocalStorage = () => {
+            const savedWeeklyGoals = localStorage.getItem(storageKey);
+            if (savedWeeklyGoals) {
+                try {
+                    const parsedGoals = JSON.parse(savedWeeklyGoals);
+                    if (typeof parsedGoals === 'object' && parsedGoals !== null) {
+                        setGoals(parsedGoals);
+                    }
+                } catch (e) { 
+                    logger.error("Failed to parse weekly goals", e);
+                }
+            }
+            setIsLoaded(true);
+        };
+        loadFromLocalStorage();
+    }, [mode, storageKey]);
+  
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
     useEffect(() => {
         if(userLoading) return;
         
-        const loadData = async () => {
-            let loadedData = {};
+        const loadFromFirestore = async () => {
             if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey] || {};
-                }
-            } else {
-                const savedWeeklyGoals = localStorage.getItem(storageKey);
-                if (savedWeeklyGoals) {
-                    try {
-                        const parsedGoals = JSON.parse(savedWeeklyGoals);
-                        if (typeof parsedGoals === 'object' && parsedGoals !== null) {
-                            loadedData = parsedGoals;
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (firestoreData) {
+                            setGoals(firestoreData);
                         }
-                    } catch (e) { 
-                        logger.error("Failed to parse weekly goals", e);
                     }
+                } catch (error) {
+                    logger.error("Error loading weekly goals from Firestore:", error);
                 }
             }
-            setGoals(loadedData);
-            setIsLoaded(true);
         };
-        loadData();
-    }, [mode, storageKey, user, userLoading, firestore, firestoreKey]);
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
   
     useEffect(() => {
-      if (!isLoaded || userLoading) return;
+      if (!isLoaded) return;
       
       const saveData = async () => {
-          if(user && firestore) {
+          // 总是保存到 localStorage（即使用户已登录）
+          localStorage.setItem(storageKey, JSON.stringify(goals));
+          
+          // 如果用户已登录且认证完成，也保存到 Firestore
+          if(user && firestore && !userLoading) {
               const docRef = doc(firestore, 'plans', user.uid);
-              await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
-          } else {
-              localStorage.setItem(storageKey, JSON.stringify(goals));
+              try {
+                  await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+              } catch (error) {
+                  logger.error("Error saving weekly goals to Firestore:", error);
+              }
           }
       };
       saveData();
-    }, [goals, storageKey, isLoaded, user, userLoading, firestore, firestoreKey]);
+    }, [goals, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
     
     const addGoal = (day: string, period: string, item: string) => {
       if (!item.trim()) return;
@@ -1087,40 +1169,59 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' 
     const [editingInfo, setEditingInfo] = useState<{ week: string, index: number } | null>(null);
     const [editingText, setEditingText] = useState('');
 
+    // 第一阶段：立即从 localStorage 加载，不等待认证
     useEffect(() => {
-        if(userLoading) return;
-        const loadData = async () => {
-            let loadedData = {};
-             if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey] || {};
-                }
-            } else {
-                const savedGoals = localStorage.getItem(storageKey);
-                if (savedGoals) {
-                    try {
-                        loadedData = JSON.parse(savedGoals);
-                    } catch (e) {
-                        logger.error("Failed to parse monthly goals", e);
-                    }
+        const loadFromLocalStorage = () => {
+            const savedGoals = localStorage.getItem(storageKey);
+            if (savedGoals) {
+                try {
+                    const loadedData = JSON.parse(savedGoals);
+                    setGoals(loadedData);
+                } catch (e) {
+                    logger.error("Failed to parse monthly goals", e);
                 }
             }
-            setGoals(loadedData);
             setIsLoaded(true);
         };
-        loadData();
-    }, [storageKey, user, userLoading, firestore, firestoreKey]);
+        loadFromLocalStorage();
+    }, [storageKey]);
+
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
+    useEffect(() => {
+        if(userLoading) return;
+        const loadFromFirestore = async () => {
+            if (user && firestore) {
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (firestoreData) {
+                            setGoals(firestoreData);
+                        }
+                    }
+                } catch (error) {
+                    logger.error("Error loading monthly goals from Firestore:", error);
+                }
+            }
+        };
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded || userLoading) return;
+        if (!isLoaded) return;
         const saveData = async () => {
-            if(user && firestore) {
+            // 总是保存到 localStorage（即使用户已登录）
+            localStorage.setItem(storageKey, JSON.stringify(goals));
+            
+            // 如果用户已登录且认证完成，也保存到 Firestore
+            if(user && firestore && !userLoading) {
                 const docRef = doc(firestore, 'plans', user.uid);
-                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(goals));
+                try {
+                    await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+                } catch (error) {
+                    logger.error("Error saving monthly goals to Firestore:", error);
+                }
             }
         };
         saveData();
@@ -1300,40 +1401,59 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
     const [editingInfo, setEditingInfo] = useState<{ quarter: string, index: number } | null>(null);
     const [editingText, setEditingText] = useState('');
 
+     // 第一阶段：立即从 localStorage 加载，不等待认证
      useEffect(() => {
-        if(userLoading) return;
-        const loadData = async () => {
-            let loadedData = {};
-             if (user && firestore) {
-                const docRef = doc(firestore, 'plans', user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    loadedData = docSnap.data()[firestoreKey] || {};
-                }
-            } else {
-                const savedGoals = localStorage.getItem(storageKey);
-                if (savedGoals) {
-                    try {
-                        loadedData = JSON.parse(savedGoals);
-                    } catch (e) {
-                        logger.error("Failed to parse yearly goals", e);
-                    }
+        const loadFromLocalStorage = () => {
+            const savedGoals = localStorage.getItem(storageKey);
+            if (savedGoals) {
+                try {
+                    const loadedData = JSON.parse(savedGoals);
+                    setGoals(loadedData);
+                } catch (e) {
+                    logger.error("Failed to parse yearly goals", e);
                 }
             }
-            setGoals(loadedData);
             setIsLoaded(true);
         };
-        loadData();
-    }, [storageKey, user, userLoading, firestore, firestoreKey]);
+        loadFromLocalStorage();
+    }, [storageKey]);
+
+    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
+    useEffect(() => {
+        if(userLoading) return;
+        const loadFromFirestore = async () => {
+            if (user && firestore) {
+                try {
+                    const docRef = doc(firestore, 'plans', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const firestoreData = docSnap.data()[firestoreKey];
+                        if (firestoreData) {
+                            setGoals(firestoreData);
+                        }
+                    }
+                } catch (error) {
+                    logger.error("Error loading yearly goals from Firestore:", error);
+                }
+            }
+        };
+        loadFromFirestore();
+    }, [user, userLoading, firestore, firestoreKey]);
 
     useEffect(() => {
-        if (!isLoaded || userLoading) return;
+        if (!isLoaded) return;
         const saveData = async () => {
-            if(user && firestore) {
+            // 总是保存到 localStorage（即使用户已登录）
+            localStorage.setItem(storageKey, JSON.stringify(goals));
+            
+            // 如果用户已登录且认证完成，也保存到 Firestore
+            if(user && firestore && !userLoading) {
                 const docRef = doc(firestore, 'plans', user.uid);
-                await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(goals));
+                try {
+                    await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
+                } catch (error) {
+                    logger.error("Error saving yearly goals to Firestore:", error);
+                }
             }
         };
         saveData();

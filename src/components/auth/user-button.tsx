@@ -77,9 +77,12 @@ export default function UserButton() {
           email: p.email ?? providerProfile?.email ?? '',
           photoURL,
         });
+        // 立即预加载头像，提高显示速度
         if (photoURL) {
           const img = new Image();
           img.src = photoURL;
+          img.onload = () => logger.log('[Auth] Avatar preloaded successfully');
+          img.onerror = () => logger.error('[Auth] Avatar preload failed');
         }
       } catch {}
       toast({
@@ -145,6 +148,13 @@ export default function UserButton() {
       const photoURLRaw = current.photoURL ?? currentProfile?.photoURL ?? '';
       const photoURL = photoURLRaw ? optimizeGooglePhotoURL(photoURLRaw, 64) : '';
       const fallbackText = displayName?.charAt(0).toUpperCase() || email?.charAt(0).toUpperCase() || 'U';
+      
+      // 预加载头像
+      if (photoURL && typeof window !== 'undefined') {
+        const img = new Image();
+        img.src = photoURL;
+      }
+      
       return (
         <DropdownMenu
           onOpenChange={(open) => {
@@ -165,7 +175,7 @@ export default function UserButton() {
               }}
             >
               <Avatar className="h-10 w-10">
-                {photoURL ? <AvatarImage src={photoURL} alt={displayName} loading="eager" fetchPriority="high" /> : null}
+                {photoURL ? <AvatarImage src={photoURL} alt={displayName} /> : null}
                 <AvatarFallback>{fallbackText}</AvatarFallback>
               </Avatar>
             </Button>
@@ -191,13 +201,9 @@ export default function UserButton() {
       );
     }
     return (
-      <div
-        className="h-10 w-10 rounded-full"
-        onPointerDownCapture={() => logger.log('[Auth] Skeleton capture pointerdown')}
-        title="加载中..."
-      >
+      <Button variant="ghost" size="icon" className="h-10 w-10 p-0" disabled aria-label="加载中">
         <Skeleton className="h-10 w-10 rounded-full" />
-      </div>
+      </Button>
     );
   }
 
@@ -215,8 +221,6 @@ export default function UserButton() {
                 <AvatarImage
                   src={optimisticProfile.photoURL}
                   alt={optimisticProfile.displayName ?? ''}
-                  loading="eager"
-                  fetchPriority="high"
                 />
               ) : null}
               <AvatarFallback>{fallbackText}</AvatarFallback>
@@ -295,7 +299,7 @@ export default function UserButton() {
               const photoURL = raw ? optimizeGooglePhotoURL(raw, 64) : '';
               const displayName = user.displayName ?? providerProfile?.displayName ?? '';
               if (photoURL) {
-                return <AvatarImage src={photoURL} alt={displayName ?? ''} loading="eager" fetchPriority="high" />;
+                return <AvatarImage src={photoURL} alt={displayName ?? ''} />;
               }
               return null;
             })()}

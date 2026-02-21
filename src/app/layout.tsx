@@ -19,6 +19,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+        <link rel="dns-prefetch" href="https://lh4.googleusercontent.com" />
+        <link rel="dns-prefetch" href="https://lh5.googleusercontent.com" />
+        <link rel="dns-prefetch" href="https://lh6.googleusercontent.com" />
         <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased h-full">
