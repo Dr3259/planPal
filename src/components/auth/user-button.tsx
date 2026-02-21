@@ -53,12 +53,14 @@ export default function UserButton() {
   }
 
   if (!user) {
+  */
     return (
-      <Button onClick={handleSignIn} variant="outline">
+      <Button variant="outline">
         <LogIn className="mr-2 h-4 w-4" />
         注册 / 登录
       </Button>
     );
+  /*
   }
 
   return (
@@ -93,5 +95,4 @@ export default function UserButton() {
     </DropdownMenu>
   );
   */
- return null;
 }
