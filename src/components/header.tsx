@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UserButton from './auth/user-button';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 type Mode = 'work' | 'study' | 'life' | 'travel';
 
@@ -26,8 +27,34 @@ export default function Header({ mode, setMode }: HeaderProps) {
     travel: { icon: <Plane />, text: '旅游模式' },
   };
 
+  useEffect(() => {
+    const handler = (ev: PointerEvent) => {
+      const elements = document
+        .elementsFromPoint(ev.clientX, ev.clientY)
+        .slice(0, 6)
+        .map((el) => {
+          const he = el as HTMLElement;
+          const z = getComputedStyle(he).zIndex;
+          const cls = (he.className || '').toString().trim().slice(0, 80);
+          return `${el.tagName}.${cls} z:${z}`;
+        });
+      logger.log('[Debug] document capture pointerdown', {
+        x: ev.clientX,
+        y: ev.clientY,
+        elements,
+      });
+    };
+    document.addEventListener('pointerdown', handler, true);
+    return () => document.removeEventListener('pointerdown', handler, true);
+  }, []);
+
   return (
-    <header className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b">
+    <header
+      className="bg-card/80 backdrop-blur-sm sticky top-0 z-40 border-b"
+      onPointerDownCapture={() => {
+        logger.log('[Debug] header capture pointerdown');
+      }}
+    >
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <div className="bg-primary p-2 rounded-lg">

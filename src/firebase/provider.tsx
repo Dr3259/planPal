@@ -8,6 +8,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { firebaseConfig } from './config';
+import { logger } from '@/lib/logger';
 
 const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore) => {
     const localDataKeys = Object.keys(localStorage).filter(key => key.startsWith('plan-app-data-'));
@@ -16,9 +17,9 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
         return;
     }
 
-    console.log('开始将本地数据迁移到 Firestore，用户ID:', userId);
+    logger.log('开始将本地数据迁移到 Firestore，用户ID:', userId);
 
-    const dataToMigrate: { [key: string]: any } = {};
+    const dataToMigrate: Record<string, unknown> = {};
     const localDataKeysToRemove: string[] = [];
 
     for (const storageKey of localDataKeys) {
@@ -31,13 +32,13 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
                 dataToMigrate[firestoreKey] = data;
                 localDataKeysToRemove.push(storageKey);
             } catch (e) {
-                console.error(`解析本地数据出错，键: ${storageKey}:`, e);
+                logger.error(`解析本地数据出错，键: ${storageKey}:`, e);
             }
         }
     }
 
     if (Object.keys(dataToMigrate).length === 0) {
-        console.log('未找到有效的本地数据进行迁移。');
+        logger.log('未找到有效的本地数据进行迁移。');
         return;
     }
 
@@ -48,10 +49,10 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
         for (const key of localDataKeysToRemove) {
             localStorage.removeItem(key);
         }
-        console.log('本地数据成功迁移到 Firestore。');
+        logger.log('本地数据成功迁移到 Firestore。');
 
     } catch (error) {
-        console.error('迁移本地数据到 Firestore 时出错:', error);
+        logger.error('迁移本地数据到 Firestore 时出错:', error);
     }
 };
 
@@ -109,7 +110,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
                         lastLogin: serverTimestamp(),
                     }, { merge: true });
                 } catch (error) {
-                    console.error("更新用户文档时出错:", error);
+                    logger.error("更新用户文档时出错:", error);
                 }
             }
             setUser(user);

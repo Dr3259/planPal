@@ -1,0 +1,17 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    "no-console": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/logger.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}

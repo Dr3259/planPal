@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen, PlusCircle } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -382,7 +383,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
                     try {
                         loadedData = JSON.parse(saved);
                     } catch (e) {
-                        console.error("Failed to parse suggestions from localStorage", e);
+                        logger.error("Failed to parse suggestions from localStorage", e);
                     }
                 }
             }
@@ -414,7 +415,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
                 try {
                     await setDoc(docRef, { [firestoreKey]: suggestions }, { merge: true });
                 } catch (error) {
-                    console.error("Error saving suggestions to Firestore:", error);
+                    logger.error("Error saving suggestions to Firestore:", error);
                 }
             } else {
                 localStorage.setItem(storageKey, JSON.stringify(suggestions));
@@ -528,7 +529,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
                     try {
                         loadedData = JSON.parse(saved);
                     } catch (e) {
-                        console.error("Failed to parse daily goals from localStorage", e);
+                        logger.error("Failed to parse daily goals from localStorage", e);
                     }
                 }
             }
@@ -678,7 +679,7 @@ const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
                     try {
                         loadedData = JSON.parse(savedPlan);
                     } catch (e) {
-                        console.error("Failed to parse itinerary plan", e);
+                        logger.error("Failed to parse itinerary plan", e);
                     }
                 }
             }
@@ -910,7 +911,7 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
                             loadedData = parsedGoals;
                         }
                     } catch (e) { 
-                        console.error("Failed to parse weekly goals", e);
+                        logger.error("Failed to parse weekly goals", e);
                     }
                 }
             }
@@ -1102,7 +1103,7 @@ const MonthlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' 
                     try {
                         loadedData = JSON.parse(savedGoals);
                     } catch (e) {
-                        console.error("Failed to parse monthly goals", e);
+                        logger.error("Failed to parse monthly goals", e);
                     }
                 }
             }
@@ -1315,7 +1316,7 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
                     try {
                         loadedData = JSON.parse(savedGoals);
                     } catch (e) {
-                        console.error("Failed to parse yearly goals", e);
+                        logger.error("Failed to parse yearly goals", e);
                     }
                 }
             }
