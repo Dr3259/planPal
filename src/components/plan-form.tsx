@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from "@/components/ui/label";
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen, PlusCircle } from 'lucide-react';
+import { Plus, Trash2, Check, X, PanelRightClose, PanelLeftOpen, PlusCircle, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import {
   DropdownMenu,
@@ -20,10 +20,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import React from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { createPlanItem, createPlanService } from '@/lib/services/plan-service';
+import { createStorageAdapter } from '@/lib/storage/storage-factory';
+import { formatDate } from '@/lib/date-utils';
+import type { DailyPlan, PlanMode } from '@/types/plan-sync';
 
 
 type PlanFormProps = {
@@ -44,7 +50,8 @@ const translations = {
             suggestionsTitle: '可能的计划项',
             suggestionsDescription: '双击编辑，或添加到计划中。',
             addSuggestion: '添加',
-            noPlans: '暂无计划，从右侧添加或直接创建',
+            noPlans: '暂无计划，请从右侧添加',
+            noPlansPast: '历史记录暂无计划',
         },
         'Weekly': {
             plan: '每周工作计划',
@@ -73,7 +80,8 @@ const translations = {
             suggestionsTitle: '可能的计划项',
             suggestionsDescription: '双击编辑，或添加到计划中。',
             addSuggestion: '添加',
-            noPlans: '暂无计划，从右侧添加或直接创建',
+            noPlans: '暂无计划，请从右侧添加',
+            noPlansPast: '历史记录暂无计划',
         },
         'Weekly': {
             plan: '每周学习计划',
@@ -102,7 +110,8 @@ const translations = {
             suggestionsTitle: '可能的生活项',
             suggestionsDescription: '双击编辑，或添加到计划中。',
             addSuggestion: '添加',
-            noPlans: '暂无计划，从右侧添加或直接创建',
+            noPlans: '暂无计划，请从右侧添加',
+            noPlansPast: '历史记录暂无计划',
         },
         'Weekly': {
             plan: '每周生活计划',
@@ -169,9 +178,10 @@ type SuggestionNodeProps = {
     onAddChild: (parentId: string, text: string) => void;
     addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void;
     parentText?: string;
+    readOnly?: boolean;
 };
 
-const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, addGoal, parentText }: SuggestionNodeProps) => {
+const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, addGoal, parentText, readOnly }: SuggestionNodeProps) => {
     const [editing, setEditing] = useState(false);
     const [editText, setEditText] = useState(item.text);
     const [addingChild, setAddingChild] = useState(false);
@@ -260,18 +270,20 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                             </Tooltip>
                         </TooltipProvider>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => addGoal('morning', fullItemText)}>添加到上午</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => addGoal('afternoon', fullItemText)}>添加到下午</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => addGoal('evening', fullItemText)}>添加到晚上</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {!readOnly && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={() => addGoal('morning', fullItemText)}>添加到上午</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addGoal('afternoon', fullItemText)}>添加到下午</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => addGoal('evening', fullItemText)}>添加到晚上</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
 
                         <TooltipProvider>
                             <Tooltip>
@@ -298,6 +310,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
                         onAddChild={onAddChild}
                         addGoal={addGoal}
                         parentText={fullItemText}
+                        readOnly={readOnly}
                     />
                 ))}
                 {addingChild && (
@@ -331,7 +344,7 @@ const SuggestionNode = ({ item, level, isLast, onUpdate, onDelete, onAddChild, a
 };
 
 
-const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | 'travel', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void }) => {
+const SuggestedItems = ({ mode, addGoal, readOnly }: { mode: 'work' | 'study' | 'life' | 'travel', addGoal: (period: 'morning' | 'afternoon' | 'evening', item: string) => void, readOnly?: boolean }) => {
     const { user, loading: userLoading } = useUser();
     const firestore = useFirestore();
     const dailyTranslations = translations[mode]['Daily'];
@@ -457,7 +470,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
                 text: newSuggestion.trim(),
                 children: [],
             };
-            setSuggestions(prev => [...prev, newItem]);
+            setSuggestions(prev => [newItem, ...prev]);
             setNewSuggestion('');
         }
     };
@@ -506,6 +519,7 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
                             onDelete={handleDelete}
                             onAddChild={handleAddChild}
                             addGoal={addGoal}
+                            readOnly={readOnly}
                         />
                     ))}
                 </div>
@@ -514,14 +528,61 @@ const SuggestedItems = ({ mode, addGoal }: { mode: 'work' | 'study' | 'life' | '
     );
 };
 
+function formatDateKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
-const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
+function readStoredDate(storageKey: string) {
+    try {
+        const savedDate = localStorage.getItem(storageKey);
+        if (!savedDate) return null;
+        const [year, month, day] = savedDate.split('-').map(Number);
+        if (!year || !month || !day) return null;
+        return new Date(year, month - 1, day);
+    } catch {
+        return null;
+    }
+}
+
+function isSameDate(left: Date, right: Date) {
+    return left.getFullYear() === right.getFullYear()
+        && left.getMonth() === right.getMonth()
+        && left.getDate() === right.getDate();
+}
+
+function normalizeDate(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function isBeforeDate(left: Date, right: Date) {
+    return normalizeDate(left).getTime() < normalizeDate(right).getTime();
+}
+
+const DailyPlanForm = ({ mode, selectedDate }: { mode: 'work' | 'study' | 'life' | 'travel'; selectedDate: Date }) => {
     const { user, loading: userLoading } = useUser();
     const firestore = useFirestore();
     const dailyTranslations = translations[mode]['Daily'];
+    const dateKey = formatDateKey(selectedDate);
+    const isToday = isSameDate(selectedDate, new Date());
+    const isPast = isBeforeDate(selectedDate, new Date());
+
+    const planUserId = user?.uid ?? 'local';
+    const storageAdapter = useMemo(
+        () => createStorageAdapter(firestore, user?.uid ?? null),
+        [firestore, user?.uid]
+    );
+    const planService = useMemo(
+        () => createPlanService(storageAdapter, planUserId),
+        [storageAdapter, planUserId]
+    );
     
-    const storageKey = `plan-app-data-${mode}-Daily-goals`;
-    const firestoreKey = `${mode}_Daily_goals`;
+    const storageKey = `plan-app-data-${mode}-Daily-goals-${dateKey}`;
+    const firestoreKey = `${mode}_Daily_goals_${dateKey}`;
+    const legacyStorageKey = `plan-app-data-${mode}-Daily-goals`;
+    const legacyFirestoreKey = `${mode}_Daily_goals`;
 
     const [goals, setGoals] = useState<{ morning: string[], afternoon: string[], evening: string[] }>({ morning: [], afternoon: [], evening: [] });
     const [isLoaded, setIsLoaded] = useState(false);
@@ -541,10 +602,16 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
     // 第一阶段：立即从 localStorage 加载，不等待认证
     useEffect(() => {
         const loadFromLocalStorage = () => {
+            setIsLoaded(false);
+            setGoals({ morning: [], afternoon: [], evening: [] });
+
             const saved = localStorage.getItem(storageKey);
-            if (saved) {
+            const fallbackSaved = !saved && isToday ? localStorage.getItem(legacyStorageKey) : null;
+            const source = saved ?? fallbackSaved;
+
+            if (source) {
                 try {
-                    const loadedData = JSON.parse(saved);
+                    const loadedData = JSON.parse(source);
                     if (loadedData && Array.isArray(loadedData.morning) && Array.isArray(loadedData.afternoon) && Array.isArray(loadedData.evening)) {
                         setGoals(loadedData);
                     }
@@ -556,7 +623,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
         };
         
         loadFromLocalStorage();
-    }, [mode, storageKey]);
+    }, [storageKey, legacyStorageKey, isToday]);
 
     // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
     useEffect(() => {
@@ -568,7 +635,8 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
                     const docRef = doc(firestore, 'plans', user.uid);
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        const firestoreData = docSnap.data()[firestoreKey];
+                        const data = docSnap.data();
+                        const firestoreData = data?.[firestoreKey] ?? (isToday ? data?.[legacyFirestoreKey] : undefined);
                         if (firestoreData && Array.isArray(firestoreData.morning) && Array.isArray(firestoreData.afternoon) && Array.isArray(firestoreData.evening)) {
                             setGoals(firestoreData);
                         }
@@ -580,7 +648,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
         };
         
         loadFromFirestore();
-    }, [user, userLoading, firestore, firestoreKey]);
+    }, [user, userLoading, firestore, firestoreKey, legacyFirestoreKey, isToday]);
 
     useEffect(() => {
         if (!isLoaded) return;
@@ -598,12 +666,32 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
                     logger.error("Error saving daily goals to Firestore:", error);
                 }
             }
+
+            const dailyPlan: DailyPlan = {
+                date: dateKey,
+                mode: mode as PlanMode,
+                morning: goals.morning.map(createPlanItem),
+                afternoon: goals.afternoon.map(createPlanItem),
+                evening: goals.evening.map(createPlanItem),
+            };
+
+            try {
+                await planService.saveDailyPlan(dateKey, mode as PlanMode, dailyPlan);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('planpal-daily-updated', {
+                        detail: { mode, date: dateKey }
+                    }));
+                }
+            } catch (error) {
+                logger.error("Error syncing daily plan:", error);
+            }
         };
 
         saveData();
-    }, [goals, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
+    }, [goals, storageKey, isLoaded, user, firestore, firestoreKey, userLoading, dateKey, mode, planService]);
     
     const addGoal = (period: 'morning' | 'afternoon' | 'evening', item: string) => {
+        if (isPast) return;
         setGoals(prev => {
             if (prev[period].includes(item)) {
                 return prev;
@@ -613,6 +701,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
     };
 
     const removeGoal = (period: 'morning' | 'afternoon' | 'evening', indexToRemove: number) => {
+        if (isPast) return;
         setGoals(prev => ({
             ...prev,
             [period]: prev[period].filter((_, index) => index !== indexToRemove)
@@ -638,15 +727,19 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
                                      color.bg, color.text
                                  )}>
                                 <p className="text-sm font-medium break-words">{item}</p>
-                                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(period, index)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {!isPast && (
+                                    <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(period, index)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                         )})}
                     </div>
                 ) : (
                     <div className="flex items-center justify-center border-2 border-dashed w-full min-h-[10rem]">
-                        <p className="text-sm text-muted-foreground">{dailyTranslations.noPlans}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {isPast ? dailyTranslations.noPlansPast : dailyTranslations.noPlans}
+                        </p>
                     </div>
                 )}
             </div>
@@ -683,6 +776,7 @@ const DailyPlanForm = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' })
                     <SuggestedItems
                         mode={mode}
                         addGoal={addGoal}
+                        readOnly={isPast}
                     />
                 </div>
             </div>
@@ -890,7 +984,7 @@ const ItineraryPlanView = ({ mode }: { mode: 'travel' }) => {
 const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const timePeriods = ['morning', 'afternoon', 'evening'];
 
-const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }) => {
+const WeeklyPlanView = ({ mode, selectedDate }: { mode: 'work' | 'study' | 'life' | 'travel'; selectedDate: Date }) => {
     const { user, loading: userLoading } = useUser();
     const firestore = useFirestore();
 
@@ -902,7 +996,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
           afternoon: '下午',
           evening: '晚上',
         },
-        addPrompt: '添加新计划...'
       },
       study: {
         days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -911,7 +1004,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
           afternoon: '下午',
           evening: '晚上',
         },
-        addPrompt: '添加新计划...'
       },
       life: {
         days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -920,7 +1012,6 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
           afternoon: '下午',
           evening: '晚上',
         },
-        addPrompt: '添加新计划...'
       },
       travel: {
         days: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
@@ -929,20 +1020,88 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
           afternoon: '下午',
           evening: '晚上',
         },
-        addPrompt: '添加新行程...'
       }
     };
   
     const t = weeklyTranslations[mode];
-  
-    type WeeklyGoals = Record<string, Record<string, string[]>>;
-    const storageKey = `plan-app-data-${mode}-Weekly-goals`;
-    const firestoreKey = `${mode}_Weekly_goals`;
-    
-    const [goals, setGoals] = useState<WeeklyGoals>({});
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [addingInfo, setAddingInfo] = useState<{day: string, period: string} | null>(null);
-    const [newItem, setNewItem] = useState('');
+    const weekStart = useMemo(() => {
+        const day = selectedDate.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        const start = new Date(selectedDate);
+        start.setDate(selectedDate.getDate() + diff);
+        start.setHours(0, 0, 0, 0);
+        return start;
+    }, [selectedDate]);
+    const todayKey = formatDate(new Date());
+
+    const formatDayLabel = (dateKey: string) => {
+        const [year, month, day] = dateKey.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+    };
+
+    const weekDates = useMemo(() => {
+        return daysOfWeek.map((_, index) => {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + index);
+            return formatDate(date);
+        });
+    }, [weekStart]);
+
+    const planUserId = user?.uid ?? 'local';
+    const storageAdapter = useMemo(
+        () => createStorageAdapter(firestore, user?.uid ?? null),
+        [firestore, user?.uid]
+    );
+    const planService = useMemo(
+        () => createPlanService(storageAdapter, planUserId),
+        [storageAdapter, planUserId]
+    );
+
+    const readLocalPlan = (dateKey: string): DailyPlan | null => {
+        if (typeof window === 'undefined') return null;
+
+        const primaryKey = `plan-app-data-users-${planUserId}-dailyPlans-${dateKey}-${mode}`;
+        const primaryRaw = localStorage.getItem(primaryKey);
+        if (primaryRaw) {
+            try {
+                const parsed = JSON.parse(primaryRaw);
+                if (parsed && Array.isArray(parsed.morning) && Array.isArray(parsed.afternoon) && Array.isArray(parsed.evening)) {
+                    return parsed as DailyPlan;
+                }
+            } catch (error) {
+                logger.error("Error parsing synced daily plan:", error);
+            }
+        }
+
+        const legacyKey = `plan-app-data-${mode}-Daily-goals-${dateKey}`;
+        const legacyRaw = localStorage.getItem(legacyKey);
+        if (legacyRaw) {
+            try {
+                const parsed = JSON.parse(legacyRaw);
+                if (parsed && Array.isArray(parsed.morning) && Array.isArray(parsed.afternoon) && Array.isArray(parsed.evening)) {
+                    return {
+                        date: dateKey,
+                        mode: mode as PlanMode,
+                        morning: parsed.morning.map(createPlanItem),
+                        afternoon: parsed.afternoon.map(createPlanItem),
+                        evening: parsed.evening.map(createPlanItem),
+                    };
+                }
+            } catch (error) {
+                logger.error("Error parsing legacy daily plan:", error);
+            }
+        }
+
+        return null;
+    };
+
+    const [dailyPlans, setDailyPlans] = useState<Record<string, DailyPlan | null>>(() => {
+        if (typeof window === 'undefined') return {};
+        const entries = weekDates.map((dateKey) => [dateKey, readLocalPlan(dateKey)] as const);
+        return Object.fromEntries(entries);
+    });
+    const [isLoading, setIsLoading] = useState(true);
   
     const stringToHash = (str: string) => {
         let hash = 0;
@@ -954,171 +1113,148 @@ const WeeklyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
         }
         return hash;
     };
-  
-    // 第一阶段：立即从 localStorage 加载，不等待认证
+
     useEffect(() => {
-        const loadFromLocalStorage = () => {
-            const savedWeeklyGoals = localStorage.getItem(storageKey);
-            if (savedWeeklyGoals) {
-                try {
-                    const parsedGoals = JSON.parse(savedWeeklyGoals);
-                    if (typeof parsedGoals === 'object' && parsedGoals !== null) {
-                        setGoals(parsedGoals);
-                    }
-                } catch (e) { 
-                    logger.error("Failed to parse weekly goals", e);
-                }
+        if (userLoading) return;
+        let cancelled = false;
+
+        const loadDailyPlans = async () => {
+            if (cancelled) return;
+            setIsLoading(true);
+            const localEntries = weekDates.map((dateKey) => [dateKey, readLocalPlan(dateKey)] as const);
+            if (!cancelled) {
+                setDailyPlans(Object.fromEntries(localEntries));
             }
-            setIsLoaded(true);
-        };
-        loadFromLocalStorage();
-    }, [mode, storageKey]);
-  
-    // 第二阶段：认证完成后，如果用户已登录，从 Firestore 加载
-    useEffect(() => {
-        if(userLoading) return;
-        
-        const loadFromFirestore = async () => {
-            if (user && firestore) {
-                try {
-                    const docRef = doc(firestore, 'plans', user.uid);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        const firestoreData = docSnap.data()[firestoreKey];
-                        if (firestoreData) {
-                            setGoals(firestoreData);
+            try {
+                const entries = await Promise.all(
+                    weekDates.map(async (dateKey) => {
+                        const syncedPlan = await planService.loadDailyPlan(dateKey, mode as PlanMode, planUserId);
+                        if (syncedPlan) return [dateKey, syncedPlan] as const;
+
+                        const legacyKey = `plan-app-data-${mode}-Daily-goals-${dateKey}`;
+                        const legacyRaw = localStorage.getItem(legacyKey);
+                        if (!legacyRaw) return [dateKey, null] as const;
+
+                        try {
+                            const parsed = JSON.parse(legacyRaw);
+                            if (parsed && Array.isArray(parsed.morning) && Array.isArray(parsed.afternoon) && Array.isArray(parsed.evening)) {
+                                const fallbackPlan: DailyPlan = {
+                                    date: dateKey,
+                                    mode: mode as PlanMode,
+                                    morning: parsed.morning.map(createPlanItem),
+                                    afternoon: parsed.afternoon.map(createPlanItem),
+                                    evening: parsed.evening.map(createPlanItem),
+                                };
+                                return [dateKey, fallbackPlan] as const;
+                            }
+                        } catch (error) {
+                            logger.error("Error parsing legacy daily plan:", error);
                         }
-                    }
-                } catch (error) {
-                    logger.error("Error loading weekly goals from Firestore:", error);
+
+                        return [dateKey, null] as const;
+                    })
+                );
+
+                if (!cancelled) {
+                    setDailyPlans(Object.fromEntries(entries));
+                }
+            } catch (error) {
+                logger.error("Error loading weekly daily plans:", error);
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
                 }
             }
         };
-        loadFromFirestore();
-    }, [user, userLoading, firestore, firestoreKey]);
-  
-    useEffect(() => {
-      if (!isLoaded) return;
-      
-      const saveData = async () => {
-          // 总是保存到 localStorage（即使用户已登录）
-          localStorage.setItem(storageKey, JSON.stringify(goals));
-          
-          // 如果用户已登录且认证完成，也保存到 Firestore
-          if(user && firestore && !userLoading) {
-              const docRef = doc(firestore, 'plans', user.uid);
-              try {
-                  await setDoc(docRef, { [firestoreKey]: goals }, { merge: true });
-              } catch (error) {
-                  logger.error("Error saving weekly goals to Firestore:", error);
-              }
-          }
-      };
-      saveData();
-    }, [goals, storageKey, isLoaded, user, firestore, firestoreKey, userLoading]);
-    
-    const addGoal = (day: string, period: string, item: string) => {
-      if (!item.trim()) return;
-      setGoals(prev => {
-        const dayGoals = prev[day] || {};
-        const periodGoals = dayGoals[period] || [];
-        if (periodGoals.includes(item.trim())) return prev;
-  
-        const newGoals = {
-          ...prev,
-          [day]: {
-            ...dayGoals,
-            [period]: [...periodGoals, item.trim()]
-          }
+
+        const handleRefresh = () => {
+            loadDailyPlans();
         };
-        return newGoals;
-      });
-      setNewItem('');
-      setAddingInfo(null);
-    };
-  
-    const removeGoal = (day: string, period: string, indexToRemove: number) => {
-      setGoals(prev => {
-        const newGoals = { ...prev };
-        if (newGoals[day] && newGoals[day][period]) {
-            newGoals[day][period] = newGoals[day][period].filter((_, index) => index !== indexToRemove);
+
+        loadDailyPlans();
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('planpal-daily-updated', handleRefresh);
         }
-        return newGoals;
-      });
-    };
-  
-    const handleAddClick = (day: string, period: string) => {
-      setAddingInfo({ day, period });
-      setNewItem('');
-    };
-    
-    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter' && addingInfo) {
-        addGoal(addingInfo.day, addingInfo.period, newItem);
-      }
-      if (e.key === 'Escape') {
-        setAddingInfo(null);
-        setNewItem('');
-      }
-    };
+
+        return () => {
+            cancelled = true;
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('planpal-daily-updated', handleRefresh);
+            }
+        };
+    }, [userLoading, planService, weekDates, mode, planUserId]);
   
     return (
       <div className="w-full overflow-x-auto">
-        <div className="grid grid-cols-[auto_repeat(7,minmax(120px,1fr))] border-t border-l bg-card">
-          <div className="p-2 border-b border-r font-semibold bg-muted/50 sticky left-0 z-10"></div>
-          {t.days.map(day => (
-            <div key={day} className="p-2 border-b border-r text-center font-semibold bg-muted/50">
-              {day}
+        <div className="min-w-[980px] rounded-2xl border bg-card shadow-sm overflow-hidden">
+          <div className="grid grid-cols-[140px_repeat(7,minmax(140px,1fr))]">
+            <div className="p-3 border-b border-r text-sm font-semibold bg-muted/60 sticky left-0 z-20 backdrop-blur">
+              时间段
             </div>
-          ))}
-          
-          {timePeriods.map(period => (
-            <React.Fragment key={period}>
-              <div className="p-2 border-b border-r font-semibold bg-muted/50 flex items-center justify-center sticky left-0 z-10">
-                <span>{t.periods[period as keyof typeof t.periods]}</span>
-              </div>
-              {daysOfWeek.map(day => (
-                <div key={`${day}-${period}`} className="p-2 border-b border-r min-h-[12rem] flex flex-col gap-1.5">
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    {(goals[day]?.[period] || []).map((item, index) => {
-                      const hash = stringToHash(item);
-                      const color = noteColors[Math.abs(hash) % noteColors.length];
-                      return (
-                         <div key={index} className={cn(
-                             "group relative p-1.5 rounded-md text-xs flex items-center justify-between",
-                             color.bg, color.text
-                         )}>
-                            <p className="break-words mr-1 flex-1 text-left">{item}</p>
-                            <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100 text-current/70 hover:text-current" onClick={() => removeGoal(day, period, index)}>
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
-                        </div>
-                      )
-                    })}
-                  </div>
-  
-                  {addingInfo?.day === day && addingInfo?.period === period ? (
-                    <div className="flex gap-1 mt-auto">
-                      <Input
-                        autoFocus
-                        value={newItem}
-                        onChange={e => setNewItem(e.target.value)}
-                        onKeyDown={handleInputKeyDown}
-                        onBlur={() => { setAddingInfo(null); setNewItem(''); }}
-                        placeholder={t.addPrompt}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  ) : (
-                    <Button variant="ghost" size="sm" className="w-full mt-auto text-muted-foreground hover:text-foreground" onClick={() => handleAddClick(day, period)}>
-                      <Plus className="h-4 w-4 mr-1"/> 添加
-                    </Button>
+            {weekDates.map((dateKey, index) => {
+              const isToday = dateKey === todayKey;
+              return (
+                <div
+                  key={dateKey}
+                  className={cn(
+                    "p-3 border-b border-r text-center bg-muted/60",
+                    isToday && "bg-amber-50/70"
                   )}
-  
+                >
+                  <div className="text-sm font-semibold text-foreground">{t.days[index]}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{formatDayLabel(dateKey)}</div>
                 </div>
-              ))}
-            </React.Fragment>
-          ))}
+              );
+            })}
+            
+            {timePeriods.map(period => (
+              <React.Fragment key={period}>
+                <div className="p-3 border-b border-r font-semibold bg-muted/40 flex items-center justify-center sticky left-0 z-10">
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    {t.periods[period as keyof typeof t.periods]}
+                  </Badge>
+                </div>
+                {weekDates.map((dateKey) => {
+                  const dailyPlan = dailyPlans[dateKey];
+                  const items = dailyPlan
+                      ? period === 'morning'
+                          ? dailyPlan.morning
+                          : period === 'afternoon'
+                              ? dailyPlan.afternoon
+                              : dailyPlan.evening
+                      : [];
+                  const isToday = dateKey === todayKey;
+                  return (
+                      <div
+                        key={`${dateKey}-${period}`}
+                        className={cn(
+                          "p-3 border-b border-r min-h-[12rem] flex flex-col gap-2 transition-colors",
+                          isToday && "bg-amber-50/30"
+                        )}
+                      >
+                          <div className="flex-1 flex flex-col gap-2">
+                              {items.length > 0 ? (
+                                  items.map((item, index) => {
+                                      const hash = stringToHash(item.text);
+                                      const color = noteColors[Math.abs(hash) % noteColors.length];
+                                      return (
+                                          <div key={`${dateKey}-${period}-${index}`} className={cn(
+                                              "px-2 py-1.5 rounded-md text-xs flex items-center shadow-sm",
+                                              color.bg, color.text
+                                          )}>
+                                              <p className="break-words flex-1 text-left">{item.text}</p>
+                                          </div>
+                                      );
+                                  })
+                              ) : null}
+                          </div>
+                      </div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -1588,26 +1724,75 @@ const YearlyPlanView = ({ mode }: { mode: 'work' | 'study' | 'life' | 'travel' }
     );
 };
 
-const TodayDate = () => {
-    const [dateString, setDateString] = useState('');
+const TodayDate = ({ selectedDate, onChange }: { selectedDate: Date; onChange: (nextDate: Date) => void }) => {
+    const handlePrevDay = () => {
+        const updated = new Date(selectedDate);
+        updated.setDate(updated.getDate() - 1);
+        onChange(updated);
+    };
 
-    useEffect(() => {
-        const today = new Date();
-        const options: Intl.DateTimeFormatOptions = {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long',
-        };
-        setDateString(new Intl.DateTimeFormat('zh-CN', options).format(today));
-    }, []);
+    const handleNextDay = () => {
+        const updated = new Date(selectedDate);
+        updated.setDate(updated.getDate() + 1);
+        onChange(updated);
+    };
 
-    if (!dateString) return null;
+    const handleBackToToday = () => {
+        onChange(new Date());
+    };
+
+    const isToday = isSameDate(selectedDate, new Date());
+    const isPast = isBeforeDate(selectedDate, new Date());
+    const dateLabel = selectedDate.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+    });
 
     return (
-        <span className="text-base font-normal text-muted-foreground tracking-wide">
-            {dateString}
-        </span>
+        <div className="flex items-center gap-2 text-base font-normal text-muted-foreground tracking-wide">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePrevDay} aria-label="上一天">
+                <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 gap-2 text-sm font-normal"
+                            title={dateLabel}
+                            aria-label={dateLabel}
+                        >
+                            <CalendarIcon className="h-4 w-4" />
+                            <span className="max-w-[11rem] truncate">{dateLabel}</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-transparent border-none shadow-none" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => date && onChange(date)}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+                {isPast && <Badge variant="secondary" className="hidden sm:inline-flex">历史记录</Badge>}
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNextDay} aria-label="下一天">
+                <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+                variant={isToday ? 'secondary' : 'outline'}
+                size="sm"
+                className="h-8 px-3"
+                onClick={handleBackToToday}
+                disabled={isToday}
+            >
+                今天
+            </Button>
+        </div>
     );
 };
 
@@ -1675,6 +1860,19 @@ const YearInfo = () => {
 
 export default function PlanForm({ mode, planType, placeholder }: PlanFormProps) {
   const currentTranslation = translations[mode][planType as keyof typeof translations[typeof mode]];
+  const selectedDateStorageKey = `plan-app-data-${mode}-Daily-selected-date`;
+  const [selectedDate, setSelectedDate] = useState(() => readStoredDate(selectedDateStorageKey) ?? new Date());
+
+  useEffect(() => {
+    const storedDate = readStoredDate(selectedDateStorageKey);
+    if (storedDate) {
+      setSelectedDate(storedDate);
+    }
+  }, [selectedDateStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(selectedDateStorageKey, formatDateKey(selectedDate));
+  }, [selectedDateStorageKey, selectedDate]);
   
   if (!currentTranslation) {
     // This can happen if the mode and planType combination is not defined,
@@ -1687,7 +1885,7 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
       <CardHeader>
         <div className="flex justify-between items-baseline">
             <CardTitle className="font-headline text-3xl">{currentTranslation.plan}</CardTitle>
-            {planType === 'Daily' && <TodayDate />}
+            {planType === 'Daily' && <TodayDate selectedDate={selectedDate} onChange={setSelectedDate} />}
             {planType === 'Weekly' && <WeekInfo />}
             {planType === 'Monthly' && <MonthInfo />}
             {planType === 'Yearly' && <YearInfo />}
@@ -1696,9 +1894,9 @@ export default function PlanForm({ mode, planType, placeholder }: PlanFormProps)
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         {planType === 'Daily' ? (
-          <DailyPlanForm mode={mode} />
+          <DailyPlanForm mode={mode} selectedDate={selectedDate} />
         ) : planType === 'Weekly' ? (
-          <WeeklyPlanView mode={mode} />
+          <WeeklyPlanView mode={mode} selectedDate={selectedDate} />
         ) : planType === 'Monthly' ? (
           <MonthlyPlanView mode={mode} />
         ) : planType === 'Yearly' ? (

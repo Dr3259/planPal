@@ -22,17 +22,25 @@ const migrateLocalDataToFirestore = async (userId: string, firestore: Firestore)
     const dataToMigrate: Record<string, unknown> = {};
     const localDataKeysToRemove: string[] = [];
 
+    const parseLocalValue = (raw: string) => {
+        try {
+            return { value: JSON.parse(raw), parsed: true };
+        } catch {
+            return { value: raw, parsed: false };
+        }
+    };
+
     for (const storageKey of localDataKeys) {
         const dataStr = localStorage.getItem(storageKey);
-        if (dataStr) {
-            try {
-                const data = JSON.parse(dataStr);
-                const firestoreKey = storageKey.substring('plan-app-data-'.length).replace(/-/g, '_');
-                
-                dataToMigrate[firestoreKey] = data;
-                localDataKeysToRemove.push(storageKey);
-            } catch (e) {
-                logger.error(`解析本地数据出错，键: ${storageKey}:`, e);
+        if (dataStr !== null) {
+            const { value, parsed } = parseLocalValue(dataStr);
+            const firestoreKey = storageKey.substring('plan-app-data-'.length).replace(/-/g, '_');
+            
+            dataToMigrate[firestoreKey] = value;
+            localDataKeysToRemove.push(storageKey);
+
+            if (!parsed) {
+                logger.log(`本地数据非 JSON，已按原始字符串迁移，键: ${storageKey}`);
             }
         }
     }
